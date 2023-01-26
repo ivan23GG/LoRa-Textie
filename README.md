@@ -2,7 +2,7 @@
 <h2> Изработен е от Иван Иванов и Веселин Владимиров. </h2>
 <h3> В следващите снимки ще видите блок схемата и електрическата схема на проекта. </h3>
 ![Screenshot](block.png)
-![Screenshot](electronics.png)
+![Screenshot](electronics.jpg)
 <br>
 
 </br>
