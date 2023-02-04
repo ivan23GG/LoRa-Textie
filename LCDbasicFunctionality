@@ -1,0 +1,54 @@
+#include <UTFT.h>
+#include <URTouch.h>
+
+UTFT    myGLCD(ILI9486,38,39,40,41);
+URTouch  myTouch( 6, 5, 4, 3, 2);
+
+// Declare which fonts we will be using
+extern uint8_t BigFont[];
+
+int x, y;
+char stCurrent[20]="";
+int stCurrentLen=0;
+char stLast[20]="";
+
+/*************************
+**   Custom functions   **
+*************************/
+
+void drawButtons()
+{
+// Draw the upper row of buttons
+  for (x=0; x<5; x++)
+  {
+    myGLCD.setColor(255, 255, 255);
+
+  }
+
+// Draw the lower row of buttons
+  myGLCD.setColor(255, 255, 255);
+  myGLCD.print("Hello! This is Person1.", 10, 10);
+  myGLCD.print("I am in danger!", 10, 40);
+  myGLCD.print("Please send help!", 10, 70);
+  myGLCD.print("My cordinates are:...", 10, 100);
+}
+
+/*************************
+**  Required functions  **
+*************************/
+
+void setup()
+{
+// Initial setup
+  myGLCD.InitLCD();
+  myGLCD.clrScr();
+
+  myTouch.InitTouch();
+  myTouch.setPrecision(PREC_MEDIUM);
+
+  myGLCD.setFont(BigFont);
+  myGLCD.setBackColor(0, 0, 255);
+  drawButtons();  
+}
+
+void loop(){}
