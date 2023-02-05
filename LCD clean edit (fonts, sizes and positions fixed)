@@ -1,0 +1,28 @@
+#include <UTFT.h>
+#include <URTouch.h>
+
+UTFT    myGLCD(ILI9486,38,39,40,41);
+URTouch  myTouch( 6, 5, 4, 3, 2);
+
+extern uint8_t BigFont[];
+
+void writeMessage()
+{
+  myGLCD.setColor(255, 255, 255);
+  myGLCD.print("Hello! This is Person1.", 10, 10);
+  myGLCD.print("I am in danger!", 10, 40);
+  myGLCD.print("Please send help!", 10, 70);
+  myGLCD.print("My cordinates are:...", 10, 100);
+}
+
+void setup()
+{
+  myGLCD.InitLCD();
+  myGLCD.clrScr();
+  myTouch.setPrecision(PREC_MEDIUM);
+  myGLCD.setFont(BigFont);
+  myGLCD.setBackColor(0, 0, 255);
+  writeMessage();  
+}
+
+void loop(){}
