@@ -1,0 +1,44 @@
+bool state=false;
+int row, colum;
+void setup() {
+pinMode(4, INPUT_PULLUP);
+pinMode(5, INPUT_PULLUP); 
+pinMode(6, INPUT_PULLUP); 
+pinMode(7, INPUT_PULLUP); 
+pinMode(8, OUTPUT);
+pinMode(9, OUTPUT);
+pinMode(10, OUTPUT);
+pinMode(11, OUTPUT);
+pinMode(12, OUTPUT);
+Serial.begin(9600);
+}
+
+void loop() {
+for (int i=8; i<13; i++)
+{
+  digitalWrite(i, LOW);
+  for (int j=4; j<8; j++)
+  {
+    if (digitalRead(j)==LOW)
+    {
+      state=true;
+      colum=i;
+      row=j;
+    
+    }
+    else
+    {
+      state=false;
+    }
+    if (state = true)
+    {
+      Serial.println(colum);
+      Serial.print(" ");
+      Serial.println(row);
+    }
+  }
+  digitalWrite(i, HIGH);
+}
+
+delay(800);
+}
