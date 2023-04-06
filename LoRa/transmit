@@ -1,0 +1,65 @@
+#include <SoftwareSerial.h>
+SoftwareSerial sendSerial(6,7);
+struct TxStruct {
+    char textA[60];
+    int cycle;                                           
+};
+TxStruct txData{"aa", 1};
+bool newTxData = false;
+const byte startMarker = 18;
+const byte stopMarker = 20;
+const byte txDataLen = sizeof(txData);
+unsigned long prevUpdateTime = 0;
+unsigned long updateInterval = 500;
+char wholeMessage[499]="Arduino is an open-source hardware and software company, project, and user community that designs and manufactures single-board microcontrollers and microcontroller kits for building digital devices. Its hardware products are licensed under a CC BY-SA license, while the software is licensed under the GNU Lesser General Public License  or the GNU General Public License  permitting the manufacture of Arduino boards and software distribution by anyone. Arduino boards are available";
+int sizeMessage = sizeof(wholeMessage);
+char sText[] = "";
+
+void setup() {
+    Serial.begin(9600);
+    Serial.println("\nStarting SerialStructSend.ino\n");
+    sendSerial.begin(9600);
+}
+void loop() {
+  int cycles=sizeMessage/50;
+  if(sizeMessage%50>0)
+  {
+    cycles++;
+  }
+  for(int i=0; i<cycles; i++)
+  {
+    Serial.println("losho");
+    Serial.println("Vleze v update data");
+    if (millis() - prevUpdateTime >= updateInterval) {
+        prevUpdateTime = millis();
+        Serial.println("Vleze v..");
+    for(int j=0; j<50; j++)
+    {
+      sText[j]=wholeMessage[i*50+j];
+    }
+        if (newTxData == false) { 
+            strcpy(txData.textA, sText);
+            txData.cycle++;
+            newTxData = true;
+        }
+    }
+    transmitData();
+    Serial.println(i);
+  }
+}
+void updateDataToSend() {
+  
+}
+void transmitData() {
+    if (newTxData == true) {
+        sendSerial.write(startMarker);
+        sendSerial.write((byte*) &txData, txDataLen);
+        sendSerial.write(stopMarker);
+        Serial.print("Sent ");
+        Serial.println(txDataLen);
+        Serial.println(sizeMessage);
+        Serial.println(txData.textA);
+        Serial.println(txData.cycle);
+        newTxData = false;
+    }
+}
