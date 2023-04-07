@@ -1,0 +1,83 @@
+#include <Keypad.h>
+const byte ROWS = 5; //four rows
+const byte COLS = 4; //four columns
+char customKey;
+//define the cymbols on the buttons of the keypads
+char hexaKeys[ROWS][COLS] = {
+  {'F','f','#','*'},
+  {'1','2','3','u'},
+  {'4','5','6','d'},
+  {'7','8','9','E'},
+  {'l','0','r','e'}
+};
+byte rowPins[ROWS] = {6, 7, 8, 9, 10}; //connect to the row pinouts of the keypad
+byte colPins[COLS] = {2, 3, 4, 5}; //connect to the column pinouts of the keypad
+
+//initialize an instance of class NewKeypad
+Keypad customKeypad = Keypad( makeKeymap(hexaKeys), rowPins, colPins, ROWS, COLS); 
+struct TxStruct {
+    char cX[8];
+    char cY[8];           
+    char cases;
+    int cycle;                                                            
+};
+
+TxStruct txData = {"1", "1", '1', 1};
+
+bool newTxData = false;
+
+const byte startMarker = 18;
+const byte txDataLen = sizeof(txData);
+const byte endMarker = 20;
+
+        // timing variables for sending frequency
+unsigned long prevUpdateTime = 0;
+unsigned long updateInterval = 200;
+void setup() {
+    Serial.begin(9600);
+    Serial.println("\nStarting SerialStructSend.ino\n");
+
+        // set up Serial for communication
+    Serial1.begin(9600); // to match SoftwareSerial on Uno
+
+}
+void loop() {
+   // this function updates the data in txData
+    updateDataToSend();       //
+    transmitData();
+}
+void updateDataToSend() {
+
+    if (millis() - prevUpdateTime >= updateInterval) {
+        prevUpdateTime = millis();
+        if (newTxData == false) { // ensure previous message has been sent
+             
+            if (customKeypad.getKey()>0){ 
+            txData.cases=customKeypad.getKey();
+            }
+            char X[] = "42.6668";
+            char Y[] = "23.39441";
+            strcpy(txData.cX, X);
+            strcpy(txData.cY, Y);
+            txData.cycle++;
+            newTxData = true;
+        }
+    }
+}
+void transmitData() {
+
+    if (newTxData == true) {
+        Serial1.write(startMarker);
+        Serial1.write((byte*) &txData, txDataLen);
+        Serial1.write(endMarker);
+
+            // for demo show the data that as been sent
+        Serial.print("Sent ");
+        Serial.print(txData.cY);
+        Serial.print(' ');
+        Serial.println(txData.cX);
+        Serial.println(txData.cycle);
+        Serial.print(txData.cases);
+        newTxData = false;
+    }
+}
