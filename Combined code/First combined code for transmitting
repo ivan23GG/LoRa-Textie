@@ -1,19 +1,60 @@
 #include <Keypad.h>
 int len = 10;
-const int ROW_NUM = 5;
-const int COLUMN_NUM = 4; 
+int keypads[2]={1, 1};
+const byte ROWS = 5; 
+const byte COLS = 4;
 char keypadInput;
-char keys[ROW_NUM][COLUMN_NUM] = {
-  {'F','f','#','*'},
-  {'1','2','3','u'},
-  {'4','5','6','d'},
-  {'7','8','9','E'},
-  {'l','0','r','e'}
+char first_down_alphabet[ROWS][COLS] = {
+  {'a','b','c','d'},
+  {'e','f','g','@'},
+  {'h','i','j',';'},
+  {'k','l','m','&'},
+  {'[','n',']','$'}
+};
+char second_down_alphabet[ROWS][COLS] = {
+  {'o','p','.',' '},
+  {'q','r','s','@'},
+  {'t','u','v',';'},
+  {'w','x','y','&'},
+  {'[','z',']','$'}
+};
+char numbers_down[ROWS][COLS] = {
+  {',','-','?','!'},
+  {'1','2','3','@'},
+  {'4','5','6',';'},
+  {'7','8','9','&'},
+  {'[','0',']','$'}
+};
+char first_up_alphabet[ROWS][COLS] = {
+  {'A','B','C','D'},
+  {'E','F','G','@'},
+  {'H','I','J',';'},
+  {'K','L','M','&'},
+  {'[','N',']','$'}
+};
+char second_up_alphabet[ROWS][COLS] = {
+  {'O','P','.',' '},
+  {'Q','R','S','@'},
+  {'T','U','V',';'},
+  {'W','X','Y','&'},
+  {'[','Z',']','$'}
+};
+char numbers_up[ROWS][COLS] = {
+  {'(',')',':','"'},
+  {'+','-','=','@'},
+  {'^','_','/',';'},
+  {'*','#','|','&'},
+  {'[','~',']','$'}
 };
 String input_string;
-byte pin_rows[ROW_NUM] = {8, 7, 6, 5, 4};  
-byte pin_column[COLUMN_NUM] = {10, 9, 2, 3}; 
-Keypad keypad = Keypad( makeKeymap(keys), pin_rows, pin_column, ROW_NUM, COLUMN_NUM );
+byte rowPins[ROWS] = {8, 7, 6, 5, 4}; 
+byte colPins[COLS] = {10, 9, 2, 3}; 
+Keypad fda = Keypad( makeKeymap(first_down_alphabet), rowPins, colPins, ROWS, COLS);
+Keypad sda = Keypad( makeKeymap(second_down_alphabet), rowPins, colPins, ROWS, COLS);
+Keypad nd = Keypad( makeKeymap(numbers_down), rowPins, colPins, ROWS, COLS);
+Keypad fua = Keypad( makeKeymap(first_up_alphabet), rowPins, colPins, ROWS, COLS);
+Keypad sua = Keypad( makeKeymap(second_up_alphabet), rowPins, colPins, ROWS, COLS);
+Keypad nu = Keypad( makeKeymap(numbers_up), rowPins, colPins, ROWS, COLS);
 struct TxStruct {
     char textA[16];         
     int valA;               
@@ -64,13 +105,17 @@ void transmitData() {
     }
 }
 void Enterpass(int lenght){
+keypads[0]=1;
+keypads[1]=1;
 for(int i=0; i<lenght; i++)
 {
  Serial.println("Enter a key:");
-while(keypad.getKey()==0)
+ if(keypads[0]==1 && keypads[1]==1)
+ {
+  while(fda.getKey()==0)
 {
   delay(20);
-  keypadInput=keypad.getKey();
+  keypadInput=fda.getKey();
   if(keypadInput != 0)
   {
     break;
@@ -79,17 +124,240 @@ while(keypad.getKey()==0)
   if (keypadInput){
     Serial.println(keypadInput);
 
-    if(keypadInput == '*') {
+    if(keypadInput == '&') {
       input_string = ""; 
+      i=lenght;
     }
-    else if(keypadInput == '#')
+    else if(keypadInput == '$')
     {
       i=lenght;
+    }
+    else if(keypadInput ==']')
+    {
+    keypads[0]=2;  
+    }
+    else if(keypadInput =='[')
+    {  
+    }
+    else if(keypadInput =='@')
+    {
+      keypads[1]=2;
+    }
+    else if(keypadInput ==';')
+    { 
     }
     else {
       input_string += keypadInput; 
     }
   }
+ }
+else if(keypads[0]==2 && keypads[1]==1)
+ {
+  while(sda.getKey()==0)
+{
+  delay(20);
+  keypadInput=sda.getKey();
+  if(keypadInput != 0)
+  {
+    break;
+  }
+  }
+  if (keypadInput){
+    Serial.println(keypadInput);
+
+    if(keypadInput == '&') {
+      input_string = ""; 
+      i=lenght;
+    }
+    else if(keypadInput == '$')
+    {
+      i=lenght;
+    }
+    else if(keypadInput ==']')
+    {
+     keypads[0]=3; 
+    }
+    else if(keypadInput =='[')
+    {
+     keypads[0]=1; 
+    }
+    else if(keypadInput =='@')
+    {
+     keypads[1]=2; 
+    }
+    else if(keypadInput ==';')
+    { 
+    }
+    else {
+      input_string += keypadInput; 
+    }
+  }
+ }
+ else if(keypads[0]==3 && keypads[1]==1)
+ {
+  while(nd.getKey()==0)
+{
+  delay(20);
+  keypadInput=nd.getKey();
+  if(keypadInput != 0)
+  {
+    break;
+  }
+  }
+  if (keypadInput){
+    Serial.println(keypadInput);
+
+    if(keypadInput == '&') {
+      input_string = ""; 
+      i=lenght;
+    }
+    else if(keypadInput == '$')
+    {
+      i=lenght;
+    }
+    else if(keypadInput ==']')
+    {
+    }
+    else if(keypadInput =='[')
+    {
+    keypads[0]=2; 
+    }
+    else if(keypadInput =='@')
+    {
+     keypads[1]=2;  
+    }
+    else if(keypadInput ==';')
+    {
+    }
+    else {
+      input_string += keypadInput; 
+    }
+  }
+ }
+ else if(keypads[0]==1 && keypads[1]==2)
+ {
+  while(fua.getKey()==0)
+{
+  delay(20);
+  keypadInput=fua.getKey();
+  if(keypadInput != 0)
+  {
+    break;
+  }
+  }
+  if (keypadInput){
+    Serial.println(keypadInput);
+
+    if(keypadInput == '&') {
+      input_string = ""; 
+      i=lenght;
+    }
+    else if(keypadInput == '$')
+    {
+      i=lenght;
+    }
+    else if(keypadInput ==']')
+    {
+    keypads[0]=2;   
+    }
+    else if(keypadInput =='[')
+    {
+    }
+    else if(keypadInput =='@')
+    { 
+    }
+    else if(keypadInput ==';')
+    {
+    keypads[1]=1;  
+    }
+    else {
+      input_string += keypadInput; 
+    }
+  }
+ }
+ else if(keypads[0]==2 && keypads[1]==2)
+ {
+  while(sua.getKey()==0)
+{
+  delay(20);
+  keypadInput=sua.getKey();
+  if(keypadInput != 0)
+  {
+    break;
+  }
+  }
+  if (keypadInput){
+    Serial.println(keypadInput);
+
+    if(keypadInput == '&') {
+      input_string = ""; 
+      i=lenght;
+    }
+    else if(keypadInput == '$')
+    {
+      i=lenght;
+    }
+    else if(keypadInput ==']')
+    {
+     keypads[0]=3;  
+    }
+    else if(keypadInput =='[')
+    {
+    keypads[0]=1;  
+    }
+    else if(keypadInput =='@')
+    {
+    }
+    else if(keypadInput ==';')
+    {
+    keypads[1]=1;  
+    }
+    else {
+      input_string += keypadInput; 
+    }
+  }
+ }
+ else if(keypads[0]==3 && keypads[1]==2)
+ {
+  while(nu.getKey()==0)
+{
+  delay(20);
+  keypadInput=nu.getKey();
+  if(keypadInput != 0)
+  {
+    break;
+  }
+  }
+  if (keypadInput){
+    Serial.println(keypadInput);
+
+    if(keypadInput == '&') {
+      input_string = ""; 
+      i=lenght;
+    }
+    else if(keypadInput == '$')
+    {
+      i=lenght;
+    }
+    else if(keypadInput ==']')
+    {
+    }
+    else if(keypadInput =='[')
+    {
+      keypads[0]=2; 
+    }
+    else if(keypadInput =='@')
+    {   
+    }
+    else if(keypadInput ==';')
+    {
+     keypads[1]=1;  
+    }
+    else {
+      input_string += keypadInput; 
+    }
+  }
+ }
 } 
 Serial.println(input_string);
 }
