@@ -1,0 +1,95 @@
+#include <Keypad.h>
+int len = 10;
+const int ROW_NUM = 5;
+const int COLUMN_NUM = 4; 
+char keypadInput;
+char keys[ROW_NUM][COLUMN_NUM] = {
+  {'F','f','#','*'},
+  {'1','2','3','u'},
+  {'4','5','6','d'},
+  {'7','8','9','E'},
+  {'l','0','r','e'}
+};
+String input_string;
+byte pin_rows[ROW_NUM] = {8, 7, 6, 5, 4};  
+byte pin_column[COLUMN_NUM] = {10, 9, 2, 3}; 
+Keypad keypad = Keypad( makeKeymap(keys), pin_rows, pin_column, ROW_NUM, COLUMN_NUM );
+struct TxStruct {
+    char textA[16];         
+    int valA;               
+    unsigned long valB;                                                               
+};
+
+TxStruct txData = {"qwerty", 235, 0};
+bool newTxData = false;
+const byte startMarker = 255;
+const byte txDataLen = sizeof(txData);
+unsigned long prevUpdateTime = 0;
+unsigned long updateInterval = 500;
+void setup() {
+    Serial.begin(9600);
+    Serial.println("\nStarting SerialStructSend.ino\n");
+    Serial1.begin(9600); // to match SoftwareSerial on Uno
+}
+void loop() {   
+    updateDataToSend();  
+    transmitData();
+}
+void updateDataToSend() {
+        if (newTxData == false) { 
+          input_string="";
+            Enterpass(len);
+            char sText[len+1];
+            input_string.toCharArray(sText, len+1);
+            strcpy(txData.textA, sText);
+            txData.valA += 10;
+            if (txData.valA > 300) {
+                txData.valA = 235;
+            }
+            txData.valB = millis();
+            newTxData = true;
+        } 
+}
+void transmitData() {
+    if (newTxData == true) {
+        Serial1.write(startMarker);
+        Serial1.write((byte*) &txData, txDataLen);     
+        Serial.print("Sent ");
+        Serial.print(txData.textA);
+        Serial.print(' ');
+        Serial.print(txData.valA);
+        Serial.print(' ');
+        Serial.println(txData.valB);
+        newTxData = false;
+    }
+}
+void Enterpass(int lenght){
+for(int i=0; i<lenght; i++)
+{
+ Serial.println("Enter a key:");
+while(keypad.getKey()==0)
+{
+  delay(20);
+  keypadInput=keypad.getKey();
+  if(keypadInput != 0)
+  {
+    break;
+  }
+  }
+  if (keypadInput){
+    Serial.println(keypadInput);
+
+    if(keypadInput == '*') {
+      input_string = ""; 
+    }
+    else if(keypadInput == '#')
+    {
+      i=lenght;
+    }
+    else {
+      input_string += keypadInput; 
+    }
+  }
+} 
+Serial.println(input_string);
+}
