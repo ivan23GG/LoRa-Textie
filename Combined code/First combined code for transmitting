@@ -1,8 +1,15 @@
 #include <Keypad.h>
+#include <SPI.h>
+#include <SD.h>
+#include <UTFT.h>
+File history;
 int len = 10;
 int keypads[2]={1, 1};
+int option;
 const byte ROWS = 5; 
 const byte COLS = 4;
+UTFT myGLCD(ILI9486,38,39,40,41);
+extern uint8_t BigFont[];
 char keypadInput;
 char first_down_alphabet[ROWS][COLS] = {
   {'a','b','c','d'},
@@ -65,14 +72,24 @@ TxStruct txData = {"qwerty", 235, 0};
 bool newTxData = false;
 const byte startMarker = 255;
 const byte txDataLen = sizeof(txData);
-unsigned long prevUpdateTime = 0;
-unsigned long updateInterval = 500;
 void setup() {
+    option=1;
     Serial.begin(9600);
     Serial.println("\nStarting SerialStructSend.ino\n");
     Serial1.begin(9600); // to match SoftwareSerial on Uno
+     myGLCD.InitLCD();
+     myGLCD.clrScr();
+     myGLCD.setFont(BigFont);
+     myGLCD.setBackColor(0, 0, 0);
+    Serial.print("Initializing SD card...");
+  if (!SD.begin(53)) {
+    Serial.println("initialization failed!");
+    while (1);
+  }
+  Serial.println("initialization done.");
 }
 void loop() {   
+    mainMenu();
     updateDataToSend();  
     transmitData();
 }
@@ -101,8 +118,22 @@ void transmitData() {
         Serial.print(txData.valA);
         Serial.print(' ');
         Serial.println(txData.valB);
-        newTxData = false;
+        history=SD.open("messages.txt", FILE_WRITE);
+        if (history) {
+        Serial.print("Writing to test.txt...");
+        history.print("Time: ");
+        history.print(txData.valB);
+        history.print(" Value: ");
+        history.print(txData.valA);
+        history.print(" Message: ");
+        history.println(txData.textA);
+        history.println(" ");
+        history.close();
+        Serial.println("done");
+        
     }
+    newTxData = false;
+}
 }
 void Enterpass(int lenght){
 keypads[0]=1;
@@ -369,3 +400,104 @@ else if(keypads[0]==2 && keypads[1]==1)
 } 
 Serial.println(input_string);
 }
+void mainMenu()
+{
+  int option=1;
+  myGLCD.print("MAIN MENU", 150, 0);
+  myGLCD.print("Choose option", 120, 20);
+  myGLCD.print("Sent message", 5, 40);
+  myGLCD.print("See your coordinates", 5, 60);
+  myGLCD.print("Message history", 5, 80);
+  if(option==1)
+  {
+  myGLCD.drawRoundRect(195, 40, 5, 57);//to right, from hight, from right, to hight
+  while(fda.getKey()==0)
+  {
+  delay(20);
+  keypadInput=fda.getKey();
+    if(keypadInput != 0)
+    {
+      break;
+    }
+  }
+  if (keypadInput)
+  {
+    if(keypadInput==';')
+    {
+     option++;
+    }
+    else if(keypadInput=='$')
+    {
+    sentMessage();
+    }
+  }
+  }
+  if(option==2)
+  {
+  myGLCD.drawRoundRect(238, 60, 5, 77);//to right, from hight, from right, to hight
+   myGLCD.drawRoundRect(195, 40, 5, 57);//to right, from hight, from right, to hight
+  while(fda.getKey()==0)
+  {
+  delay(20);
+  keypadInput=fda.getKey();
+    if(keypadInput != 0)
+    {
+      break;
+    }
+  }
+  if (keypadInput)
+  {
+    if(keypadInput==';')
+    {
+     option++;
+    }
+    else if(keypadInput=='@')
+    {
+      option--;
+    }
+    else if(keypadInput=='$')
+    {
+    seeYourCoordinates();
+    }
+  }
+  }
+  if(option==3)
+  {
+  myGLCD.drawRoundRect(220, 80, 5, 97);//to right, from hight, from right, to hight 
+  myGLCD.drawRoundRect(195, 40, 5, 57);//to right, from hight, from right, to hight
+  while(fda.getKey()==0)
+  {
+  delay(20);
+  keypadInput=fda.getKey();
+    if(keypadInput != 0)
+    {
+      break;
+    }
+  }
+  if (keypadInput)
+  {
+    if(keypadInput=='@')
+    {
+     option--;
+    }
+    else if(keypadInput=='$')
+    {
+    messageHistory();
+    }
+  } 
+  }
+}
+void sentMessage()
+{
+  
+}
+void seeYourCoordinates()
+{
+  
+}
+void messageHistory()
+{
+  
+}
+
+
