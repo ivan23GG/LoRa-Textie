@@ -8,7 +8,7 @@
 
 </br>
 
-<h3> Имейли за контакт с нас: </h3>
+<h3> Електронна поща за контакт с нас: </h3>
 <h4> ivan.i.ivanov.2019@elsys-bg.org </h4>
 <h4> veselin.ch.vladimirov.2019@elsys-bg.org </h4>
 
