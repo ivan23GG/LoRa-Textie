@@ -55,8 +55,8 @@ char numbers_up[ROWS][COLS] = {
   {'[','~',']','$'}
 };
 String input_string;
-byte rowPins[ROWS] = {8, 7, 6, 5, 4}; 
-byte colPins[COLS] = {10, 9, 2, 3}; 
+byte rowPins[ROWS] = {10, 9, 8, 7, 6}; 
+byte colPins[COLS] = {2, 3, 4, 5}; 
 Keypad fda = Keypad( makeKeymap(first_down_alphabet), rowPins, colPins, ROWS, COLS);
 Keypad sda = Keypad( makeKeymap(second_down_alphabet), rowPins, colPins, ROWS, COLS);
 Keypad nd = Keypad( makeKeymap(numbers_down), rowPins, colPins, ROWS, COLS);
