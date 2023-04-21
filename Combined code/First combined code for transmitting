@@ -563,11 +563,20 @@ void messageHistory()
   File readFile= SD.open("messages.txt");
   if (readFile) 
   {
+    int rowPos=0, row=20;
     while (readFile.available()) 
     {
-    myGLCD.print(readFile.read(), 5, 20);
+      char readMemory=readFile.read();
+      if(5+rowPos*12>470)
+      {
+        rowPos=0;
+        row+=20;
+      }
+    myGLCD.print(String(readMemory), 5+rowPos*12, row);
+    rowPos++;
     }
     readFile.close();
+    
   } 
   else 
   {
