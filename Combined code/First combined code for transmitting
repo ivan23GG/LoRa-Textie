@@ -207,6 +207,7 @@ for(int i=0; i<lenght; i++)
 {
  if(keypads[0]==1 && keypads[1]==1)
  {
+  showKeypad(first_down_alphabet);
   while(fda.getKey()==0)
 {
   delay(20);
@@ -248,6 +249,7 @@ for(int i=0; i<lenght; i++)
  }
 else if(keypads[0]==2 && keypads[1]==1)
  {
+  showKeypad(second_down_alphabet);
   while(sda.getKey()==0)
 {
   delay(20);
@@ -296,6 +298,7 @@ else if(keypads[0]==2 && keypads[1]==1)
  }
  else if(keypads[0]==3 && keypads[1]==1)
  {
+  showKeypad(numbers_down);
   while(nd.getKey()==0)
 {
   delay(20);
@@ -339,6 +342,7 @@ else if(keypads[0]==2 && keypads[1]==1)
  }
  else if(keypads[0]==1 && keypads[1]==2)
  {
+  showKeypad(first_up_alphabet);
   while(fua.getKey()==0)
 {
   delay(20);
@@ -382,6 +386,7 @@ else if(keypads[0]==2 && keypads[1]==1)
  }
  else if(keypads[0]==2 && keypads[1]==2)
  {
+  showKeypad(second_up_alphabet);
   while(sua.getKey()==0)
 {
   delay(20);
@@ -430,6 +435,7 @@ else if(keypads[0]==2 && keypads[1]==1)
  }
  else if(keypads[0]==3 && keypads[1]==2)
  {
+  showKeypad(numbers_up);
   while(nu.getKey()==0)
 {
   delay(20);
@@ -712,5 +718,14 @@ void MessageInbox()
     }
   }
 }
-
+void showKeypad(char keyPad[ROWS][COLS])
+{
+  for(int m=0; m<ROWS; m++)
+  {
+    for(int n=0; n<COLS; n++)
+    {
+     myGLCD.print(String(keyPad[m][n]), m*12+5, n*20+40); 
+    }
+  }
+}
 
