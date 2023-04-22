@@ -127,7 +127,7 @@ void transmitData()
         sent = true; 
         myGLCD.clrScr();
         myGLCD.setColor(0,255,0);
-        myGLCD.print("Send message", 160 ,0);  
+        myGLCD.print("Sent message", 160 ,0);  
         myGLCD.print("Send", 5, 20);
         myGLCD.print("Info:", 80, 20);
         myGLCD.print(String(txData.textA), 160, 20);
