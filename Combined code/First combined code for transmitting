@@ -296,7 +296,7 @@ else if(keypads[0]==2 && keypads[1]==1)
     }
   }
  }
- else if(keypads[0]==3 && keypads[1]==1)
+else if(keypads[0]==3 && keypads[1]==1)
  {
   showKeypad(numbers_down);
   while(nd.getKey()==0)
@@ -445,3 +445,305 @@ else if(keypads[0]==2 && keypads[1]==1)
   {
     break;
   }
+  }
+  if (keypadInput){
+    Serial.println(keypadInput);
+
+    if(keypadInput == '&') {
+      input_string = ""; 
+      i=lenght;
+    }
+    else if(keypadInput == '$')
+    {
+      i=lenght;
+    }
+    else if(keypadInput ==']' || keypadInput =='@')
+    {
+      i--;
+    }
+    else if(keypadInput =='[')
+    {
+      keypads[0]=2; 
+      i--;
+    }
+    else if(keypadInput ==';')
+    {
+     keypads[1]=1; 
+     i--; 
+    }
+    else {
+      input_string += keypadInput;
+      myGLCD.print(String(keypadInput),130+12*i ,20); 
+    }
+  }
+ }
+} 
+Serial.println(input_string);
+}
+void mainMenu()
+{
+  myGLCD.setColor(0,255,0);
+  myGLCD.print("MAIN MENU", 150, 0);
+  myGLCD.print("Choose option", 120, 20);
+  myGLCD.print("Sent message", 5, 40);
+  myGLCD.print("See your coordinates", 5, 60);
+  myGLCD.print("Message history", 5, 80);
+  myGLCD.print("Message inbox", 5, 100);
+  if(option==1)
+  {
+  myGLCD.setColor(0,0,0);
+  myGLCD.drawRoundRect(330, 60, 5, 77);
+  myGLCD.drawRoundRect(245, 80, 5, 97);
+  myGLCD.drawRoundRect(215, 100, 5, 117);
+  myGLCD.setColor(0,255,0);
+  myGLCD.drawRoundRect(195, 40, 5, 57);//to right, from hight, from right, to hight
+  while(fda.getKey()==0)
+  {
+  delay(20);
+  checkForMessage();
+  keypadInput=fda.getKey();
+    if(keypadInput != 0)
+    {
+      break;
+    }
+  }
+  if (keypadInput)
+  {
+    if(keypadInput==';')
+    {
+     option=2;
+     Serial.println(option);
+    }
+    else if(keypadInput=='$')
+    {
+    sentMessage();
+    }
+  }
+  }
+  if(option==2)
+  {
+  myGLCD.setColor(0,0,0);
+  myGLCD.drawRoundRect(195, 40, 5, 57);//to right, from hight, from right, to hight
+  myGLCD.drawRoundRect(245, 80, 5, 97);//to right, from hight, from right, to hight
+  myGLCD.drawRoundRect(215, 100, 5, 117);
+  myGLCD.setColor(0,255,0);
+  myGLCD.drawRoundRect(330, 60, 5, 77);//to right, from hight, from right, to hight
+  while(fda.getKey()==0)
+  {
+  delay(20);
+  checkForMessage();
+  keypadInput=fda.getKey();
+    if(keypadInput != 0)
+    {
+      break;
+    }
+  }
+  if (keypadInput)
+  {
+    if(keypadInput==';')
+    {
+     option=3;
+     Serial.println(option);
+    }
+    else if(keypadInput=='@')
+    {
+      option=1;
+    Serial.println(option);
+    }
+    else if(keypadInput=='$')
+    {
+    seeYourCoordinates();
+    }
+  }
+  }
+  if(option==3)
+  {  
+  myGLCD.setColor(0,0,0);
+  myGLCD.drawRoundRect(195, 40, 5, 57);//to right, from hight, from right, to hight
+  myGLCD.drawRoundRect(330, 60, 5, 77);
+  myGLCD.drawRoundRect(215, 100, 5, 117);
+  myGLCD.setColor(0,255,0);
+  myGLCD.drawRoundRect(245, 80, 5, 97);//to right, from hight, from right, to hight
+  while(fda.getKey()==0)
+  {
+  delay(20);
+  checkForMessage();
+  keypadInput=fda.getKey();
+    if(keypadInput != 0)
+    {
+      break;
+    }
+  }
+  if (keypadInput)
+  {
+    Serial.println(keypadInput);
+    if(keypadInput=='@')
+    {
+     option=2;
+     Serial.println(option);
+    }
+    else if(keypadInput==';')
+    {
+    option=4;
+    }
+    else if(keypadInput=='$')
+    {
+    messageHistory();
+    }
+  } 
+  }
+  if(option==4)
+  {  
+  myGLCD.setColor(0,0,0);
+  myGLCD.drawRoundRect(195, 40, 5, 57);//to right, from hight, from right, to hight
+  myGLCD.drawRoundRect(330, 60, 5, 77);
+  myGLCD.drawRoundRect(245, 80, 5, 97);
+  myGLCD.setColor(0,255,0);
+  myGLCD.drawRoundRect(215, 100, 5, 117);
+  while(fda.getKey()==0)
+  {
+  delay(20);
+  checkForMessage();
+  keypadInput=fda.getKey();
+    if(keypadInput != 0)
+    {
+      break;
+    }
+  }
+  if (keypadInput)
+  {
+    Serial.println(keypadInput);
+    if(keypadInput=='@')
+    {
+     option=3;
+     Serial.println(option);
+    }
+    else if(keypadInput=='$')
+    {
+    MessageInbox();
+    }
+  } 
+  }
+}
+void sentMessage()
+{
+  updateDataToSend();
+  if(strlen(txData.textA)!=0)
+  {
+  transmitData();
+  }
+  else
+  {
+    myGLCD.clrScr();
+    newTxData = false;
+  }
+}
+void seeYourCoordinates()
+{
+  myGLCD.clrScr();
+  myGLCD.setColor(0,255,0);
+  myGLCD.print("COORDINATES", 150, 0);
+  myGLCD.print("Coordinates: 42.6664, 23.3750", 5, 30);
+  while(fda.getKey()!='&')
+  {
+  delay(20);
+  checkForMessage();
+  keypadInput=fda.getKey();
+    if(keypadInput == '&')
+    {
+      myGLCD.clrScr();
+      break;
+    }
+  } 
+}
+void messageHistory()
+{
+  myGLCD.clrScr();
+  myGLCD.setColor(0,255,0);
+  myGLCD.print("Message history", 130, 0); 
+  File readFile= SD.open("messages.txt");
+  if (readFile) 
+  {
+    int rowPos=0, row=20;
+    while (readFile.available()) 
+    {
+      char readMemory=readFile.read();
+      if(5+rowPos*12>470)
+      {
+        rowPos=0;
+        row+=20;
+      }
+    myGLCD.print(String(readMemory), 5+rowPos*12, row);
+    rowPos++;
+    }
+    readFile.close();
+    
+  } 
+  else 
+  {
+    myGLCD.print("error opening messages.txt", 5, 30);
+  }
+  while(fda.getKey()!='&')
+  {
+  delay(20);
+  checkForMessage();
+  keypadInput=fda.getKey();
+    if(keypadInput == '&')
+    {
+      myGLCD.clrScr();
+      break;
+    }
+  }
+}
+void MessageInbox()
+{
+  myGLCD.clrScr();
+  myGLCD.setColor(0,255,0);
+  myGLCD.print("Message inbox", 140, 0);
+  myGLCD.print("Message:", 5, 20);
+  myGLCD.print(String(rxData.textB), 125, 20);
+  myGLCD.print("Value:", 5, 40);
+  myGLCD.print(String(rxData.valC), 95, 40);
+  myGLCD.print("Time:", 5, 60);
+  myGLCD.print(String(rxData.valD), 85, 60); 
+  while(fda.getKey()!='&')
+  {
+  delay(20);
+  checkForMessage();
+  keypadInput=fda.getKey();
+    if(keypadInput == '&')
+    {
+      myGLCD.clrScr();
+      break;
+    }
+  }
+}
+void showKeypad(char keyPad[ROWS][COLS])
+{
+  for(int m=0; m<COLS; m++)
+  {
+    for(int n=0; n<ROWS; n++)
+    {
+     if(keyPad[m][n]=="[")
+     {
+      myGLCD.print("Le", m*12+120, n*20+80);
+     }
+     if(keyPad[m][n]=="]")
+     {
+      myGLCD.print("Ri", m*12+120, n*20+80);
+     }
+     if(keyPad[m][n]=="@")
+     {
+      myGLCD.print("Up", m*12+120, n*20+80);
+     }
+     if(keyPad[m][n]==";")
+     {
+      myGLCD.print("down", m*12+120, n*20+80);
+     }
+     else
+     {
+     myGLCD.print(String(keyPad[n][m]), m*12+120, n*20+80); 
+     }
+    }
+  }
+}
