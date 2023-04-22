@@ -1,0 +1,753 @@
+#include <Keypad.h>
+#include <SPI.h>
+#include <SD.h>
+#include <UTFT.h>
+File history;
+int len = 10;
+int keypads[2]={1, 1};
+int option;
+const byte ROWS = 5; 
+const byte COLS = 4;
+bool sent;
+int buzzer = 11;
+UTFT myGLCD(ILI9486,38,39,40,41);
+extern uint8_t BigFont[];
+char keypadInput;
+char first_down_alphabet[ROWS][COLS] = {
+  {'a','b','c','d'},
+  {'e','f','g','@'},
+  {'h','i','j',';'},
+  {'k','l','m','&'},
+  {'[','n',']','$'}
+};
+char second_down_alphabet[ROWS][COLS] = {
+  {'o','p','.',' '},
+  {'q','r','s','@'},
+  {'t','u','v',';'},
+  {'w','x','y','&'},
+  {'[','z',']','$'}
+};
+char numbers_down[ROWS][COLS] = {
+  {',','-','?','!'},
+  {'1','2','3','@'},
+  {'4','5','6',';'},
+  {'7','8','9','&'},
+  {'[','0',']','$'}
+};
+char first_up_alphabet[ROWS][COLS] = {
+  {'A','B','C','D'},
+  {'E','F','G','@'},
+  {'H','I','J',';'},
+  {'K','L','M','&'},
+  {'[','N',']','$'}
+};
+char second_up_alphabet[ROWS][COLS] = {
+  {'O','P','.',' '},
+  {'Q','R','S','@'},
+  {'T','U','V',';'},
+  {'W','X','Y','&'},
+  {'[','Z',']','$'}
+};
+char numbers_up[ROWS][COLS] = {
+  {'(',')',':','"'},
+  {'+','-','=','@'},
+  {'^','_','/',';'},
+  {'*','#','|','&'},
+  {'[','~',']','$'}
+};
+String input_string;
+byte rowPins[ROWS] = {10, 9, 8, 7, 6}; 
+byte colPins[COLS] = {2, 3, 4, 5}; 
+Keypad fda = Keypad( makeKeymap(first_down_alphabet), rowPins, colPins, ROWS, COLS);
+Keypad sda = Keypad( makeKeymap(second_down_alphabet), rowPins, colPins, ROWS, COLS);
+Keypad nd = Keypad( makeKeymap(numbers_down), rowPins, colPins, ROWS, COLS);
+Keypad fua = Keypad( makeKeymap(first_up_alphabet), rowPins, colPins, ROWS, COLS);
+Keypad sua = Keypad( makeKeymap(second_up_alphabet), rowPins, colPins, ROWS, COLS);
+Keypad nu = Keypad( makeKeymap(numbers_up), rowPins, colPins, ROWS, COLS);
+struct TxStruct {
+    char textA[16];         
+    int valA;               
+    unsigned long valB;                                                               
+};
+struct RxStruct {
+    char textB[20];        
+    int valC;               
+    unsigned long valD;                                                      
+};
+RxStruct rxData;
+TxStruct txData = {"qwerty", 235, 0};
+bool newTxData = false;
+const byte txDataLen = sizeof(txData);
+const byte rxDataLen = sizeof(rxData);
+const byte startMarker = 255;
+void setup() {
+    option=1;
+    pinMode(buzzer, OUTPUT);
+    Serial.begin(9600);
+    Serial.println("\nStarting SerialStructSend.ino\n");
+    Serial1.begin(9600); // to match SoftwareSerial on Uno
+     myGLCD.InitLCD();
+     myGLCD.clrScr();
+     myGLCD.setFont(BigFont);
+     myGLCD.setBackColor(0, 0, 0);
+    Serial.print("Initializing SD card...");
+  if (!SD.begin(53)) {
+    Serial.println("initialization failed!");
+    while (1);
+  }
+  Serial.println("initialization done.");
+}
+void loop() 
+{   
+    mainMenu();
+}
+void updateDataToSend() 
+{
+        if (newTxData == false)
+        { 
+            input_string="";
+            EnterMessage(len);
+            char sText[len+1];
+            input_string.toCharArray(sText, len+1);
+            strcpy(txData.textA, sText);
+            txData.valA += 10;
+              if (txData.valA > 300) 
+              {
+              txData.valA = 235;
+              }
+            txData.valB = millis();
+            newTxData = true;
+        } 
+        
+}
+void transmitData() 
+{
+    if (newTxData == true) 
+    {
+        Serial1.write(startMarker);
+        Serial1.write((byte*) &txData, txDataLen);  
+        sent = true; 
+        myGLCD.clrScr();
+        myGLCD.setColor(0,255,0);
+        myGLCD.print("Send message", 160 ,0);  
+        myGLCD.print("Send", 5, 20);
+        myGLCD.print("Info:", 80, 20);
+        myGLCD.print(String(txData.textA), 160, 20);
+        myGLCD.print("Value:", 5, 40);
+        myGLCD.print(String(txData.valA), 100, 40);
+        myGLCD.print("Time:", 160, 40);
+        myGLCD.print(String(txData.valB), 240, 40);
+        history=SD.open("messages.txt", FILE_WRITE);
+        if (history) 
+        {
+          if(sent)
+          {
+          history.print("Sent ");
+          }
+        history.print("Time: ");
+        history.print(txData.valB);
+        history.print(" Value: ");
+        history.print(txData.valA);
+        history.print(" Message: ");
+        history.println(txData.textA);
+        history.println(" ");
+        history.close();
+        Serial.println("done"); 
+        while(fda.getKey()!='&')
+          {
+          delay(20);
+          checkForMessage();
+          keypadInput=fda.getKey();
+            if(keypadInput == '&')
+            {
+              myGLCD.clrScr();
+              break;
+            }
+          } 
+    }
+    newTxData = false;
+  }
+}
+void recvStructWithKnownLength() {
+    static byte recvData[rxDataLen];
+    byte rb;
+    byte * structStart;
+    structStart = reinterpret_cast <byte *> (&rxData);
+        rb = Serial1.read();    
+            for (byte n = 0; n < rxDataLen; n++) {
+                *(structStart + n) = Serial1.read();
+            }  
+            while (Serial1.available() > 0) {
+                byte dumpTheData = Serial1.read();
+            }
+        tone(buzzer, 1000);
+        delay(100);        
+        noTone(buzzer);
+        delay(100);
+        tone(buzzer, 1000);
+        delay(100);
+        noTone(buzzer);
+    
+}
+void checkForMessage()
+{
+  if (Serial1.available() >= rxDataLen + 1) 
+  {
+    recvStructWithKnownLength();
+  }
+}
+void EnterMessage(int lenght){
+keypads[0]=1;
+keypads[1]=1;
+myGLCD.clrScr();
+myGLCD.setColor(0,255,0);
+myGLCD.print("Send message", 160 ,0);
+myGLCD.print("Message:", 5 ,20);
+for(int i=0; i<lenght; i++)
+{
+ if(keypads[0]==1 && keypads[1]==1)
+ {
+  showKeypad(first_down_alphabet);
+  while(fda.getKey()==0)
+{
+  delay(20);
+  checkForMessage();
+  keypadInput=fda.getKey();
+  if(keypadInput != 0)
+  {
+    break;
+  }
+  }
+  if (keypadInput){
+    if(keypadInput == '&') {
+      input_string = ""; 
+      i=lenght;
+    }
+    else if(keypadInput == '$')
+    {
+      i=lenght;
+    }
+    else if(keypadInput ==']')
+    {
+    keypads[0]=2;  
+    i--; 
+    }
+    else if(keypadInput =='[' || keypadInput ==';')
+    { 
+     i--; 
+    }
+    else if(keypadInput =='@')
+    {
+      keypads[1]=2;
+      i--; 
+    }
+    else {
+      myGLCD.print(String(keypadInput),130+12*i ,20);
+      input_string += keypadInput; 
+    }
+  }
+ }
+else if(keypads[0]==2 && keypads[1]==1)
+ {
+  showKeypad(second_down_alphabet);
+  while(sda.getKey()==0)
+{
+  delay(20);
+  checkForMessage();
+  keypadInput=sda.getKey();
+  if(keypadInput != 0)
+  {
+    break;
+  }
+  }
+  if (keypadInput){
+    Serial.println(keypadInput);
+
+    if(keypadInput == '&') {
+      input_string = ""; 
+      i=lenght;
+    }
+    else if(keypadInput == '$')
+    {
+      i=lenght;
+    }
+    else if(keypadInput ==']')
+    {
+     keypads[0]=3;
+     i--;  
+    }
+    else if(keypadInput =='[')
+    {
+     keypads[0]=1;
+     i--;  
+    }
+    else if(keypadInput =='@')
+    {
+     keypads[1]=2;
+     i--;  
+    }
+    else if(keypadInput ==';')
+    { 
+     i--; 
+    }
+    else {
+      input_string += keypadInput; 
+      myGLCD.print(String(keypadInput),130+12*i ,20);
+    }
+  }
+ }
+else if(keypads[0]==3 && keypads[1]==1)
+ {
+  showKeypad(numbers_down);
+  while(nd.getKey()==0)
+{
+  delay(20);
+  checkForMessage();
+  keypadInput=nd.getKey();
+  if(keypadInput != 0)
+  {
+    break;
+  }
+  }
+  if (keypadInput){
+    Serial.println(keypadInput);
+
+    if(keypadInput == '&') {
+      input_string = ""; 
+      i=lenght;
+    }
+    else if(keypadInput == '$')
+    {
+      i=lenght;
+    }
+    else if(keypadInput ==']' || keypadInput ==';')
+    {
+    i--; 
+    }
+    else if(keypadInput =='[')
+    {
+    keypads[0]=2; 
+    i--;
+    }
+    else if(keypadInput =='@')
+    {
+     keypads[1]=2;  
+     i--;
+    }
+    else {
+      input_string += keypadInput; 
+      myGLCD.print(String(keypadInput),130+12*i ,20);
+    }
+  }
+ }
+ else if(keypads[0]==1 && keypads[1]==2)
+ {
+  showKeypad(first_up_alphabet);
+  while(fua.getKey()==0)
+{
+  delay(20);
+  checkForMessage();
+  keypadInput=fua.getKey();
+  if(keypadInput != 0)
+  {
+    break;
+  }
+  }
+  if (keypadInput){
+    Serial.println(keypadInput);
+
+    if(keypadInput == '&') {
+      input_string = ""; 
+      i=lenght;
+    }
+    else if(keypadInput == '$')
+    {
+      i=lenght;
+    }
+    else if(keypadInput ==']')
+    {
+    keypads[0]=2;
+    i--;   
+    }
+    else if(keypadInput =='[' || keypadInput =='@')
+    {
+      i--;
+    }
+    else if(keypadInput ==';')
+    {
+    keypads[1]=1;  
+    i--;
+    }
+    else {
+      input_string += keypadInput; 
+      myGLCD.print(String(keypadInput),130+12*i ,20);
+    }
+  }
+ }
+ else if(keypads[0]==2 && keypads[1]==2)
+ {
+  showKeypad(second_up_alphabet);
+  while(sua.getKey()==0)
+{
+  delay(20);
+  checkForMessage();
+  keypadInput=sua.getKey();
+  if(keypadInput != 0)
+  {
+    break;
+  }
+  }
+  if (keypadInput){
+    Serial.println(keypadInput);
+
+    if(keypadInput == '&') {
+      input_string = ""; 
+      i=lenght;
+    }
+    else if(keypadInput == '$')
+    {
+      i=lenght;
+    }
+    else if(keypadInput ==']')
+    {
+     keypads[0]=3;
+     i--;  
+    }
+    else if(keypadInput =='[')
+    {
+    keypads[0]=1;
+    i--;  
+    }
+    else if(keypadInput =='@')
+    {
+      i--;
+    }
+    else if(keypadInput ==';')
+    {
+    keypads[1]=1;
+    i--;  
+    }
+    else {
+      input_string += keypadInput; 
+      myGLCD.print(String(keypadInput),130+12*i ,20);
+    }
+  }
+ }
+ else if(keypads[0]==3 && keypads[1]==2)
+ {
+  showKeypad(numbers_up);
+  while(nu.getKey()==0)
+{
+  delay(20);
+  checkForMessage();
+  keypadInput=nu.getKey();
+  if(keypadInput != 0)
+  {
+    break;
+  }
+  }
+  if (keypadInput){
+    Serial.println(keypadInput);
+
+    if(keypadInput == '&') {
+      input_string = ""; 
+      i=lenght;
+    }
+    else if(keypadInput == '$')
+    {
+      i=lenght;
+    }
+    else if(keypadInput ==']' || keypadInput =='@')
+    {
+      i--;
+    }
+    else if(keypadInput =='[')
+    {
+      keypads[0]=2; 
+      i--;
+    }
+    else if(keypadInput ==';')
+    {
+     keypads[1]=1; 
+     i--; 
+    }
+    else {
+      input_string += keypadInput;
+      myGLCD.print(String(keypadInput),130+12*i ,20); 
+    }
+  }
+ }
+} 
+Serial.println(input_string);
+}
+void mainMenu()
+{
+  myGLCD.setColor(0,255,0);
+  myGLCD.print("MAIN MENU", 150, 0);
+  myGLCD.print("Choose option", 120, 20);
+  myGLCD.print("Send message", 5, 40);
+  myGLCD.print("See your coordinates", 5, 60);
+  myGLCD.print("Message history", 5, 80);
+  myGLCD.print("Message inbox", 5, 100);
+  if(option==1)
+  {
+  myGLCD.setColor(0,0,0);
+  myGLCD.drawRoundRect(330, 60, 5, 77);
+  myGLCD.drawRoundRect(245, 80, 5, 97);
+  myGLCD.drawRoundRect(215, 100, 5, 117);
+  myGLCD.setColor(0,255,0);
+  myGLCD.drawRoundRect(195, 40, 5, 57);//to right, from hight, from right, to hight
+  while(fda.getKey()==0)
+  {
+  delay(20);
+  checkForMessage();
+  keypadInput=fda.getKey();
+    if(keypadInput != 0)
+    {
+      break;
+    }
+  }
+  if (keypadInput)
+  {
+    if(keypadInput==';')
+    {
+     option=2;
+     Serial.println(option);
+    }
+    else if(keypadInput=='$')
+    {
+    sentMessage();
+    }
+  }
+  }
+  if(option==2)
+  {
+  myGLCD.setColor(0,0,0);
+  myGLCD.drawRoundRect(195, 40, 5, 57);//to right, from hight, from right, to hight
+  myGLCD.drawRoundRect(245, 80, 5, 97);//to right, from hight, from right, to hight
+  myGLCD.drawRoundRect(215, 100, 5, 117);
+  myGLCD.setColor(0,255,0);
+  myGLCD.drawRoundRect(330, 60, 5, 77);//to right, from hight, from right, to hight
+  while(fda.getKey()==0)
+  {
+  delay(20);
+  checkForMessage();
+  keypadInput=fda.getKey();
+    if(keypadInput != 0)
+    {
+      break;
+    }
+  }
+  if (keypadInput)
+  {
+    if(keypadInput==';')
+    {
+     option=3;
+     Serial.println(option);
+    }
+    else if(keypadInput=='@')
+    {
+      option=1;
+    Serial.println(option);
+    }
+    else if(keypadInput=='$')
+    {
+    seeYourCoordinates();
+    }
+  }
+  }
+  if(option==3)
+  {  
+  myGLCD.setColor(0,0,0);
+  myGLCD.drawRoundRect(195, 40, 5, 57);//to right, from hight, from right, to hight
+  myGLCD.drawRoundRect(330, 60, 5, 77);
+  myGLCD.drawRoundRect(215, 100, 5, 117);
+  myGLCD.setColor(0,255,0);
+  myGLCD.drawRoundRect(245, 80, 5, 97);//to right, from hight, from right, to hight
+  while(fda.getKey()==0)
+  {
+  delay(20);
+  checkForMessage();
+  keypadInput=fda.getKey();
+    if(keypadInput != 0)
+    {
+      break;
+    }
+  }
+  if (keypadInput)
+  {
+    Serial.println(keypadInput);
+    if(keypadInput=='@')
+    {
+     option=2;
+     Serial.println(option);
+    }
+    else if(keypadInput==';')
+    {
+    option=4;
+    }
+    else if(keypadInput=='$')
+    {
+    messageHistory();
+    }
+  } 
+  }
+  if(option==4)
+  {  
+  myGLCD.setColor(0,0,0);
+  myGLCD.drawRoundRect(195, 40, 5, 57);//to right, from hight, from right, to hight
+  myGLCD.drawRoundRect(330, 60, 5, 77);
+  myGLCD.drawRoundRect(245, 80, 5, 97);
+  myGLCD.setColor(0,255,0);
+  myGLCD.drawRoundRect(215, 100, 5, 117);
+  while(fda.getKey()==0)
+  {
+  delay(20);
+  checkForMessage();
+  keypadInput=fda.getKey();
+    if(keypadInput != 0)
+    {
+      break;
+    }
+  }
+  if (keypadInput)
+  {
+    Serial.println(keypadInput);
+    if(keypadInput=='@')
+    {
+     option=3;
+     Serial.println(option);
+    }
+    else if(keypadInput=='$')
+    {
+    MessageInbox();
+    }
+  } 
+  }
+}
+void sentMessage()
+{
+  updateDataToSend();
+  if(strlen(txData.textA)!=0)
+  {
+  transmitData();
+  }
+  else
+  {
+    myGLCD.clrScr();
+    newTxData = false;
+  }
+}
+void seeYourCoordinates()
+{
+  myGLCD.clrScr();
+  myGLCD.setColor(0,255,0);
+  myGLCD.print("COORDINATES", 150, 0);
+  myGLCD.print("Coordinates: 42.6664, 23.3750", 5, 30);
+  while(fda.getKey()!='&')
+  {
+  delay(20);
+  checkForMessage();
+  keypadInput=fda.getKey();
+    if(keypadInput == '&')
+    {
+      myGLCD.clrScr();
+      break;
+    }
+  } 
+}
+void messageHistory()
+{
+  myGLCD.clrScr();
+  myGLCD.setColor(0,255,0);
+  myGLCD.print("Message history", 130, 0); 
+  File readFile= SD.open("messages.txt");
+  if (readFile) 
+  {
+    int rowPos=0, row=20;
+    while (readFile.available()) 
+    {
+      char readMemory=readFile.read();
+      if(5+rowPos*12>470)
+      {
+        rowPos=0;
+        row+=20;
+      }
+    myGLCD.print(String(readMemory), 5+rowPos*12, row);
+    rowPos++;
+    }
+    readFile.close();
+    
+  } 
+  else 
+  {
+    myGLCD.print("error opening messages.txt", 5, 30);
+  }
+  while(fda.getKey()!='&')
+  {
+  delay(20);
+  checkForMessage();
+  keypadInput=fda.getKey();
+    if(keypadInput == '&')
+    {
+      myGLCD.clrScr();
+      break;
+    }
+  }
+}
+void MessageInbox()
+{
+  myGLCD.clrScr();
+  myGLCD.setColor(0,255,0);
+  myGLCD.print("Message inbox", 140, 0);
+  myGLCD.print("Message:", 5, 20);
+  myGLCD.print(String(rxData.textB), 125, 20);
+  myGLCD.print("Value:", 5, 40);
+  myGLCD.print(String(rxData.valC), 95, 40);
+  myGLCD.print("Time:", 5, 60);
+  myGLCD.print(String(rxData.valD), 85, 60); 
+  while(fda.getKey()!='&')
+  {
+  delay(20);
+  checkForMessage();
+  keypadInput=fda.getKey();
+    if(keypadInput == '&')
+    {
+      myGLCD.clrScr();
+      break;
+    }
+  }
+}
+void showKeypad(char keyPad[ROWS][COLS])
+{
+  for(int m=0; m<COLS; m++)
+  {
+    for(int n=0; n<ROWS; n++)
+    {
+     if(keyPad[m][n]=='[')
+     {
+      myGLCD.print("<", m*12+120, n*20+80);
+     }
+     else if(keyPad[m][n]==']')
+     {
+      myGLCD.print(">", m*12+120, n*20+80);
+     }
+     else if(keyPad[m][n]=='@')
+     {
+      myGLCD.print("^", m*12+120, n*20+80);
+     }
+     else if(keyPad[m][n]=='$')
+     {
+      myGLCD.print("Ent", m*12+120, n*20+80);
+     }
+     else if(keyPad[m][n]=='&')
+     {
+      myGLCD.print("Esc", m*12+120, n*20+80);
+     }
+     else
+     {
+     myGLCD.print(String(keyPad[n][m]), m*12+120, n*20+80); 
+     }
+    }
+  }
+}
