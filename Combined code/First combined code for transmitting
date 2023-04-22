@@ -9,6 +9,7 @@ int option;
 const byte ROWS = 5; 
 const byte COLS = 4;
 bool sent;
+int buzzer = 11;
 UTFT myGLCD(ILI9486,38,39,40,41);
 extern uint8_t BigFont[];
 char keypadInput;
@@ -81,6 +82,7 @@ const byte rxDataLen = sizeof(rxData);
 const byte startMarker = 255;
 void setup() {
     option=1;
+    pinMode(buzzer, OUTPUT);
     Serial.begin(9600);
     Serial.println("\nStarting SerialStructSend.ino\n");
     Serial1.begin(9600); // to match SoftwareSerial on Uno
@@ -178,7 +180,13 @@ void recvStructWithKnownLength() {
             while (Serial1.available() > 0) {
                 byte dumpTheData = Serial1.read();
             }
-        
+        tone(buzzer, 1000);
+        delay(100);        
+        noTone(buzzer);
+        delay(100);
+        tone(buzzer, 1000);
+        delay(100);
+        noTone(buzzer);
     
 }
 void checkForMessage()
@@ -704,4 +712,5 @@ void MessageInbox()
     }
   }
 }
+
 
