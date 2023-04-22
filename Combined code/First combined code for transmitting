@@ -171,15 +171,14 @@ void recvStructWithKnownLength() {
     byte rb;
     byte * structStart;
     structStart = reinterpret_cast <byte *> (&rxData);
-        rb = Serial1.read();
-        if (rb == startMarker) {    
+        rb = Serial1.read();    
             for (byte n = 0; n < rxDataLen; n++) {
                 *(structStart + n) = Serial1.read();
             }  
             while (Serial1.available() > 0) {
                 byte dumpTheData = Serial1.read();
             }
-        }
+        
     
 }
 void checkForMessage()
