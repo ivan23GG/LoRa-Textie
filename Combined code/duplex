@@ -65,17 +65,13 @@ Keypad fua = Keypad( makeKeymap(first_up_alphabet), rowPins, colPins, ROWS, COLS
 Keypad sua = Keypad( makeKeymap(second_up_alphabet), rowPins, colPins, ROWS, COLS);
 Keypad nu = Keypad( makeKeymap(numbers_up), rowPins, colPins, ROWS, COLS);
 struct TxStruct {
-    char textA[16];         
-    int valA;               
-    unsigned long valB;                                                               
+    char textA[20];                                                                          
 };
 struct RxStruct {
-    char textB[20];        
-    int valC;               
-    unsigned long valD;                                                      
+    char textB[20];                                                                            
 };
 RxStruct rxData;
-TxStruct txData = {"qwerty", 235, 0};
+TxStruct txData = {"qwerty"};
 bool newTxData = false;
 const byte txDataLen = sizeof(txData);
 const byte rxDataLen = sizeof(rxData);
@@ -110,12 +106,6 @@ void updateDataToSend()
             char sText[len+1];
             input_string.toCharArray(sText, len+1);
             strcpy(txData.textA, sText);
-            txData.valA += 10;
-              if (txData.valA > 300) 
-              {
-              txData.valA = 235;
-              }
-            txData.valB = millis();
             newTxData = true;
         } 
         
@@ -133,10 +123,6 @@ void transmitData()
         myGLCD.print("Send", 5, 20);
         myGLCD.print("Info:", 80, 20);
         myGLCD.print(String(txData.textA), 160, 20);
-        myGLCD.print("Value:", 5, 40);
-        myGLCD.print(String(txData.valA), 100, 40);
-        myGLCD.print("Time:", 160, 40);
-        myGLCD.print(String(txData.valB), 240, 40);
         history=SD.open("messages.txt", FILE_WRITE);
         if (history) 
         {
@@ -144,10 +130,6 @@ void transmitData()
           {
           history.print("Sent ");
           }
-        history.print("Time: ");
-        history.print(txData.valB);
-        history.print(" Value: ");
-        history.print(txData.valA);
         history.print(" Message: ");
         history.println(txData.textA);
         history.println(" ");
@@ -696,10 +678,6 @@ void MessageInbox()
   myGLCD.print("Message inbox", 140, 0);
   myGLCD.print("Message:", 5, 20);
   myGLCD.print(String(rxData.textB), 125, 20);
-  myGLCD.print("Value:", 5, 40);
-  myGLCD.print(String(rxData.valC), 95, 40);
-  myGLCD.print("Time:", 5, 60);
-  myGLCD.print(String(rxData.valD), 85, 60); 
   while(fda.getKey()!='&')
   {
   delay(20);
