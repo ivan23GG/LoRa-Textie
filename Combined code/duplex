@@ -65,13 +65,17 @@ Keypad fua = Keypad( makeKeymap(first_up_alphabet), rowPins, colPins, ROWS, COLS
 Keypad sua = Keypad( makeKeymap(second_up_alphabet), rowPins, colPins, ROWS, COLS);
 Keypad nu = Keypad( makeKeymap(numbers_up), rowPins, colPins, ROWS, COLS);
 struct TxStruct {
-    char textA[20];                                                                          
+    char txMessage[20];
+    char txCoordX[10];
+    char txCoordY[10];                                                                          
 };
 struct RxStruct {
-    char textB[20];                                                                            
+    char rxMessage[20];
+    char rxCoordX[10];
+    char rxCoordY[10];                                                                            
 };
 RxStruct rxData;
-TxStruct txData = {"qwerty"};
+TxStruct txData = {"qwerty", "42.6528", "23.3540"};
 bool newTxData = false;
 const byte txDataLen = sizeof(txData);
 const byte rxDataLen = sizeof(rxData);
@@ -105,7 +109,7 @@ void updateDataToSend()
             EnterMessage(len);
             char sText[len+1];
             input_string.toCharArray(sText, len+1);
-            strcpy(txData.textA, sText);
+            strcpy(txData.txMessage, sText);
             newTxData = true;
         } 
         
@@ -122,18 +126,27 @@ void transmitData()
         myGLCD.print("Send message", 160 ,0);  
         myGLCD.print("Send", 5, 20);
         myGLCD.print("Info:", 80, 20);
-        myGLCD.print(String(txData.textA), 160, 20);
+        myGLCD.print(txData.txMessage, 160, 20);
+        myGLCD.print("Xcoordinates:", 5, 40);
+        myGLCD.print(String(txData.txCoordX), 210, 40);
+        myGLCD.print("Ycoordinates:", 5, 60);
+        myGLCD.print(String(txData.txCoordY), 210, 60);
         history=SD.open("messages.txt", FILE_WRITE);
         if (history) 
         {
           if(sent)
-          {
-          history.print("Sent ");
-          }
-        history.print(" Message: ");
-        history.println(txData.textA);
-        history.println(" ");
+        {
+        history.print("&");
+        history.print("Sent ");
+        }
+        history.print(" Message:");
+        history.print(txData.txMessage);
+        history.print(" X:");
+        history.print(txData.txCoordX);
+        history.print(" Y:");
+        history.print(txData.txCoordY);
         history.close();
+        }
         Serial.println("done"); 
         while(fda.getKey()!='&')
           {
@@ -146,7 +159,7 @@ void transmitData()
               break;
             }
           } 
-    }
+    
     newTxData = false;
   }
 }
@@ -162,6 +175,23 @@ void recvStructWithKnownLength() {
             while (Serial1.available() > 0) {
                 byte dumpTheData = Serial1.read();
             }
+        sent=false;
+        history=SD.open("messages.txt", FILE_WRITE);
+        if (history) 
+        {
+        if(sent==false)
+        {
+        history.print("&");
+        history.print("Recieved ");
+        }
+        history.print(" Message:");
+        history.print(rxData.rxMessage);
+        history.print(" X:");
+        history.print(rxData.rxCoordX);
+        history.print(" Y:");
+        history.print(rxData.rxCoordY);
+        history.close();
+        }
         tone(buzzer, 1000);
         delay(100);        
         noTone(buzzer);
@@ -604,7 +634,7 @@ void mainMenu()
 void sentMessage()
 {
   updateDataToSend();
-  if(strlen(txData.textA)!=0)
+  if(strlen(txData.txMessage)!=0)
   {
   transmitData();
   }
@@ -619,7 +649,7 @@ void seeYourCoordinates()
   myGLCD.clrScr();
   myGLCD.setColor(0,255,0);
   myGLCD.print("COORDINATES", 150, 0);
-  myGLCD.print("Coordinates: 42.6664, 23.3750", 5, 30);
+  myGLCD.print("Coordinates: 42.6528, 23.3540", 5, 30);
   while(fda.getKey()!='&')
   {
   delay(20);
@@ -637,23 +667,32 @@ void messageHistory()
   myGLCD.clrScr();
   myGLCD.setColor(0,255,0);
   myGLCD.print("Message history", 130, 0); 
-  File readFile= SD.open("messages.txt");
+  File readFile=SD.open("messages.txt");
   if (readFile) 
   {
-    int rowPos=0, row=20;
+    int rowPos=0, row=0;
     while (readFile.available()) 
     {
       char readMemory=readFile.read();
-      if(5+rowPos*12>470)
+      if(row>300)
+      {
+      row=20;
+      myGLCD.setColor(0,0,0);
+      myGLCD.fillRect(5, 20, 480, 320);//start form x; y to x; y
+      myGLCD.setColor(0,255,0);
+      }
+      if(5+rowPos*12>470 || readMemory=='&')
       {
         rowPos=0;
         row+=20;
       }
-    myGLCD.print(String(readMemory), 5+rowPos*12, row);
-    rowPos++;
+      if(readMemory!='&')
+      {
+      myGLCD.print(String(readMemory), 5+rowPos*12, row);
+      rowPos++;
+      }
     }
-    readFile.close();
-    
+    readFile.close();  
   } 
   else 
   {
@@ -677,7 +716,12 @@ void MessageInbox()
   myGLCD.setColor(0,255,0);
   myGLCD.print("Message inbox", 140, 0);
   myGLCD.print("Message:", 5, 20);
-  myGLCD.print(String(rxData.textB), 125, 20);
+  myGLCD.print(String(rxData.rxMessage), 125, 20);
+  myGLCD.print("Xcoord:", 5, 40);
+  myGLCD.print(String(rxData.rxCoordX), 125, 40);
+  myGLCD.print("Ycoord:", 5, 60);
+  myGLCD.print(String(rxData.rxCoordY), 125, 60);
+  
   while(fda.getKey()!='&')
   {
   delay(20);
