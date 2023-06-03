@@ -2,6 +2,7 @@
 #include <SPI.h>
 #include <SD.h>
 #include <UTFT.h>
+#include <TinyGPSPlus.h>
 File history;
 int len = 10;
 int keypads[2]={1, 1};
@@ -11,6 +12,7 @@ const byte COLS = 4;
 bool sent;
 int buzzer = 11;
 UTFT myGLCD(ILI9486,38,39,40,41);
+TinyGPSPlus gps;
 extern uint8_t BigFont[];
 char keypadInput;
 char first_down_alphabet[ROWS][COLS] = {
@@ -65,17 +67,17 @@ Keypad fua = Keypad( makeKeymap(first_up_alphabet), rowPins, colPins, ROWS, COLS
 Keypad sua = Keypad( makeKeymap(second_up_alphabet), rowPins, colPins, ROWS, COLS);
 Keypad nu = Keypad( makeKeymap(numbers_up), rowPins, colPins, ROWS, COLS);
 struct TxStruct {
-    char textA[16];         
-    int valA;               
-    unsigned long valB;                                                               
+    char txMessage[20];
+    char txCoordX[10];
+    char txCoordY[10];                                                                          
 };
 struct RxStruct {
-    char textB[20];        
-    int valC;               
-    unsigned long valD;                                                      
+    char rxMessage[20];
+    char rxCoordX[10];
+    char rxCoordY[10];                                                                            
 };
 RxStruct rxData;
-TxStruct txData = {"qwerty", 235, 0};
+TxStruct txData = {"qwerty", "42.6528", "23.3540"};
 bool newTxData = false;
 const byte txDataLen = sizeof(txData);
 const byte rxDataLen = sizeof(rxData);
@@ -90,6 +92,7 @@ void setup() {
      myGLCD.clrScr();
      myGLCD.setFont(BigFont);
      myGLCD.setBackColor(0, 0, 0);
+     Serial2.begin(9600);
     Serial.print("Initializing SD card...");
   if (!SD.begin(53)) {
     Serial.println("initialization failed!");
@@ -98,7 +101,18 @@ void setup() {
   Serial.println("initialization done.");
 }
 void loop() 
-{   
+{  
+  if (Serial2.available() > 0)
+  {
+    if (gps.encode(Serial2.read()))
+    {
+      if (gps.location.isValid())
+      {
+       txData.txCoordX = str.toCharArray(String(Serial.print(gps.location.lat(), 6)), 11);
+        txData.txCoordY=String(Serial.println(gps.location.lng(), 6));
+      }
+    }
+  } 
     mainMenu();
 }
 void updateDataToSend() 
@@ -109,16 +123,9 @@ void updateDataToSend()
             EnterMessage(len);
             char sText[len+1];
             input_string.toCharArray(sText, len+1);
-            strcpy(txData.textA, sText);
-            txData.valA += 10;
-              if (txData.valA > 300) 
-              {
-              txData.valA = 235;
-              }
-            txData.valB = millis();
+            strcpy(txData.txMessage, sText);
             newTxData = true;
-        } 
-        
+        }      
 }
 void transmitData() 
 {
@@ -132,26 +139,27 @@ void transmitData()
         myGLCD.print("Send message", 160 ,0);  
         myGLCD.print("Send", 5, 20);
         myGLCD.print("Info:", 80, 20);
-        myGLCD.print(String(txData.textA), 160, 20);
-        myGLCD.print("Value:", 5, 40);
-        myGLCD.print(String(txData.valA), 100, 40);
-        myGLCD.print("Time:", 160, 40);
-        myGLCD.print(String(txData.valB), 240, 40);
+        myGLCD.print(txData.txMessage, 160, 20);
+        myGLCD.print("Xcoordinates:", 5, 40);
+        myGLCD.print(String(txData.txCoordX), 210, 40);
+        myGLCD.print("Ycoordinates:", 5, 60);
+        myGLCD.print(String(txData.txCoordY), 210, 60);
         history=SD.open("messages.txt", FILE_WRITE);
         if (history) 
         {
           if(sent)
-          {
-          history.print("Sent ");
-          }
-        history.print("Time: ");
-        history.print(txData.valB);
-        history.print(" Value: ");
-        history.print(txData.valA);
-        history.print(" Message: ");
-        history.println(txData.textA);
-        history.println(" ");
+        {
+        history.print("&");
+        history.print("Sent ");
+        }
+        history.print(" Message:");
+        history.print(txData.txMessage);
+        history.print(" X:");
+        history.print(txData.txCoordX);
+        history.print(" Y:");
+        history.print(txData.txCoordY);
         history.close();
+        }
         Serial.println("done"); 
         while(fda.getKey()!='&')
           {
@@ -164,7 +172,7 @@ void transmitData()
               break;
             }
           } 
-    }
+    
     newTxData = false;
   }
 }
@@ -180,6 +188,23 @@ void recvStructWithKnownLength() {
             while (Serial1.available() > 0) {
                 byte dumpTheData = Serial1.read();
             }
+        sent=false;
+        history=SD.open("messages.txt", FILE_WRITE);
+        if (history) 
+        {
+        if(sent==false)
+        {
+        history.print("&");
+        history.print("Recieved ");
+        }
+        history.print(" Message:");
+        history.print(rxData.rxMessage);
+        history.print(" X:");
+        history.print(rxData.rxCoordX);
+        history.print(" Y:");
+        history.print(rxData.rxCoordY);
+        history.close();
+        }
         tone(buzzer, 1000);
         delay(100);        
         noTone(buzzer);
@@ -207,7 +232,6 @@ for(int i=0; i<lenght; i++)
 {
  if(keypads[0]==1 && keypads[1]==1)
  {
-  showKeypad(first_down_alphabet);
   while(fda.getKey()==0)
 {
   delay(20);
@@ -249,7 +273,6 @@ for(int i=0; i<lenght; i++)
  }
 else if(keypads[0]==2 && keypads[1]==1)
  {
-  showKeypad(second_down_alphabet);
   while(sda.getKey()==0)
 {
   delay(20);
@@ -298,7 +321,6 @@ else if(keypads[0]==2 && keypads[1]==1)
  }
 else if(keypads[0]==3 && keypads[1]==1)
  {
-  showKeypad(numbers_down);
   while(nd.getKey()==0)
 {
   delay(20);
@@ -342,7 +364,6 @@ else if(keypads[0]==3 && keypads[1]==1)
  }
  else if(keypads[0]==1 && keypads[1]==2)
  {
-  showKeypad(first_up_alphabet);
   while(fua.getKey()==0)
 {
   delay(20);
@@ -386,7 +407,6 @@ else if(keypads[0]==3 && keypads[1]==1)
  }
  else if(keypads[0]==2 && keypads[1]==2)
  {
-  showKeypad(second_up_alphabet);
   while(sua.getKey()==0)
 {
   delay(20);
@@ -435,7 +455,6 @@ else if(keypads[0]==3 && keypads[1]==1)
  }
  else if(keypads[0]==3 && keypads[1]==2)
  {
-  showKeypad(numbers_up);
   while(nu.getKey()==0)
 {
   delay(20);
@@ -628,7 +647,7 @@ void mainMenu()
 void sentMessage()
 {
   updateDataToSend();
-  if(strlen(txData.textA)!=0)
+  if(strlen(txData.txMessage)!=0)
   {
   transmitData();
   }
@@ -643,7 +662,7 @@ void seeYourCoordinates()
   myGLCD.clrScr();
   myGLCD.setColor(0,255,0);
   myGLCD.print("COORDINATES", 150, 0);
-  myGLCD.print("Coordinates: 42.6664, 23.3750", 5, 30);
+  myGLCD.print("Coordinates: 42.6528, 23.3540", 5, 30);
   while(fda.getKey()!='&')
   {
   delay(20);
@@ -661,23 +680,32 @@ void messageHistory()
   myGLCD.clrScr();
   myGLCD.setColor(0,255,0);
   myGLCD.print("Message history", 130, 0); 
-  File readFile= SD.open("messages.txt");
+  File readFile=SD.open("messages.txt");
   if (readFile) 
   {
-    int rowPos=0, row=20;
+    int rowPos=0, row=0;
     while (readFile.available()) 
     {
       char readMemory=readFile.read();
-      if(5+rowPos*12>470)
+      if(row>300)
+      {
+      row=20;
+      myGLCD.setColor(0,0,0);
+      myGLCD.fillRect(5, 20, 480, 320);//start form x; y to x; y
+      myGLCD.setColor(0,255,0);
+      }
+      if(5+rowPos*12>470 || readMemory=='&')
       {
         rowPos=0;
         row+=20;
       }
-    myGLCD.print(String(readMemory), 5+rowPos*12, row);
-    rowPos++;
+      if(readMemory!='&')
+      {
+      myGLCD.print(String(readMemory), 5+rowPos*12, row);
+      rowPos++;
+      }
     }
-    readFile.close();
-    
+    readFile.close();  
   } 
   else 
   {
@@ -701,11 +729,12 @@ void MessageInbox()
   myGLCD.setColor(0,255,0);
   myGLCD.print("Message inbox", 140, 0);
   myGLCD.print("Message:", 5, 20);
-  myGLCD.print(String(rxData.textB), 125, 20);
-  myGLCD.print("Value:", 5, 40);
-  myGLCD.print(String(rxData.valC), 95, 40);
-  myGLCD.print("Time:", 5, 60);
-  myGLCD.print(String(rxData.valD), 85, 60); 
+  myGLCD.print(String(rxData.rxMessage), 125, 20);
+  myGLCD.print("Xcoord:", 5, 40);
+  myGLCD.print(String(rxData.rxCoordX), 125, 40);
+  myGLCD.print("Ycoord:", 5, 60);
+  myGLCD.print(String(rxData.rxCoordY), 125, 60);
+  
   while(fda.getKey()!='&')
   {
   delay(20);
@@ -715,39 +744,6 @@ void MessageInbox()
     {
       myGLCD.clrScr();
       break;
-    }
-  }
-}
-void showKeypad(char keyPad[ROWS][COLS])
-{
-  for(int m=0; m<COLS; m++)
-  {
-    for(int n=0; n<ROWS; n++)
-    {
-     if(keyPad[m][n]=='[')
-     {
-      myGLCD.print("<", m*12+120, n*20+80);
-     }
-     else if(keyPad[m][n]==']')
-     {
-      myGLCD.print(">", m*12+120, n*20+80);
-     }
-     else if(keyPad[m][n]=='@')
-     {
-      myGLCD.print("^", m*12+120, n*20+80);
-     }
-     else if(keyPad[m][n]=='$')
-     {
-      myGLCD.print("Ent", m*12+120, n*20+80);
-     }
-     else if(keyPad[m][n]=='&')
-     {
-      myGLCD.print("Esc", m*12+120, n*20+80);
-     }
-     else
-     {
-     myGLCD.print(String(keyPad[n][m]), m*12+120, n*20+80); 
-     }
     }
   }
 }
