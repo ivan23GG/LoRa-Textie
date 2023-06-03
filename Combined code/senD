@@ -58,6 +58,8 @@ char numbers_up[ROWS][COLS] = {
   {'[','~',']','$'}
 };
 String input_string;
+String X_string;
+String Y_string;
 byte rowPins[ROWS] = {10, 9, 8, 7, 6}; 
 byte colPins[COLS] = {2, 3, 4, 5}; 
 Keypad fda = Keypad( makeKeymap(first_down_alphabet), rowPins, colPins, ROWS, COLS);
@@ -114,14 +116,12 @@ void updateDataToSend()
             {
             if(gps.location.isValid())
             {
-            txData.txCoordX = str.toCharArray(String(Serial.print(gps.location.lat(), 6)), 11);
-            txData.txCoordY=String(Serial.println(gps.location.lng(), 6));
+            X_string=String(Serial.print(gps.location.lat(), 6));
+            Y_string=String(Serial.println(gps.location.lng(), 6));
             }
             }
             } 
             input_string="";
-            X_string=String(Serial.print(gps.location.lat(), 6));
-            Y_string=String(Serial.println(gps.location.lng(), 6));
             EnterMessage(len);
             char sText[len+1];
             char X[10];
