@@ -4,15 +4,20 @@
 #include <UTFT.h>
 #include <TinyGPSPlus.h>
 File history;
+TinyGPSPlus gps;
 int len = 10;
 int keypads[2]={1, 1};
 int option;
 const byte ROWS = 5; 
 const byte COLS = 4;
 bool sent;
+float X, Y;
+char tx_X[11];
+char tx_Y[11];
+char rx_X[11];
+char rx_Y[11];
 int buzzer = 11;
 UTFT myGLCD(ILI9486,38,39,40,41);
-TinyGPSPlus gps;
 extern uint8_t BigFont[];
 char keypadInput;
 char first_down_alphabet[ROWS][COLS] = {
@@ -58,8 +63,6 @@ char numbers_up[ROWS][COLS] = {
   {'[','~',']','$'}
 };
 String input_string;
-String X_string;
-String Y_string;
 byte rowPins[ROWS] = {10, 9, 8, 7, 6}; 
 byte colPins[COLS] = {2, 3, 4, 5}; 
 Keypad fda = Keypad( makeKeymap(first_down_alphabet), rowPins, colPins, ROWS, COLS);
@@ -70,16 +73,16 @@ Keypad sua = Keypad( makeKeymap(second_up_alphabet), rowPins, colPins, ROWS, COL
 Keypad nu = Keypad( makeKeymap(numbers_up), rowPins, colPins, ROWS, COLS);
 struct TxStruct {
     char txMessage[20];
-    char txCoordX[10];
-    char txCoordY[10];                                                                          
+    long int txCoordX;
+    long int txCoordY;                                                                          
 };
 struct RxStruct {
     char rxMessage[20];
-    char rxCoordX[10];
-    char rxCoordY[10];                                                                            
+    long int rxCoordX;
+    long int rxCoordY;                                                                            
 };
 RxStruct rxData;
-TxStruct txData = {"qwerty", "42.6528", "23.3540"};
+TxStruct txData = {"qwerty", 42652876, 23354087};
 bool newTxData = false;
 const byte txDataLen = sizeof(txData);
 const byte rxDataLen = sizeof(rxData);
@@ -94,7 +97,6 @@ void setup() {
      myGLCD.clrScr();
      myGLCD.setFont(BigFont);
      myGLCD.setBackColor(0, 0, 0);
-     Serial2.begin(9600);
     Serial.print("Initializing SD card...");
   if (!SD.begin(53)) {
     Serial.println("initialization failed!");
@@ -103,41 +105,37 @@ void setup() {
   Serial.println("initialization done.");
 }
 void loop() 
-{
+{   
     mainMenu();
 }
 void updateDataToSend() 
 {
-            if (newTxData == false)
-            { 
-            if (Serial2.available() > 0)
-            {
-            if(gps.encode(Serial2.read()))
-            {
-            if(gps.location.isValid())
-            {
-            X_string=String(Serial.print(gps.location.lat(), 6));
-            Y_string=String(Serial.println(gps.location.lng(), 6));
-            }
-            }
-            } 
+        if (newTxData == false)
+        { 
             input_string="";
             EnterMessage(len);
             char sText[len+1];
-            char X[10];
-            char Y[10];
-            X_string.toCharArray(X, 10);
-            Y_string.toCharArray(Y, 10);
+            input_string.toCharArray(sText, len+1);
             strcpy(txData.txMessage, sText);
-            strcpy(txData.txCoordX, X);
-            strcpy(txData.txCoordY, Y);
             newTxData = true;
-        }      
+        } 
+        
 }
 void transmitData() 
 {
+       
     if (newTxData == true) 
-    {
+    { 
+      if(gps.encode(Serial2.read()))
+        {
+          if(gps.location.isValid())
+            {
+              txData.txCoordX=gps.location.lat()*1000000;
+              txData.txCoordY=gps.location.lng()*1000000;
+            }
+        }
+        X=txData.txCoordX/1000000.0;
+        Y=txData.txCoordY/1000000.0;
         Serial1.write(startMarker);
         Serial1.write((byte*) &txData, txDataLen);  
         sent = true; 
@@ -148,9 +146,9 @@ void transmitData()
         myGLCD.print("Info:", 80, 20);
         myGLCD.print(txData.txMessage, 160, 20);
         myGLCD.print("Xcoordinates:", 5, 40);
-        myGLCD.print(String(txData.txCoordX), 210, 40);
+        myGLCD.print(String(dtostrf(X,9,6,tx_X)), 210, 40);
         myGLCD.print("Ycoordinates:", 5, 60);
-        myGLCD.print(String(txData.txCoordY), 210, 60);
+        myGLCD.print(String(dtostrf(Y,9,6,tx_Y)), 210, 60);
         history=SD.open("messages.txt", FILE_WRITE);
         if (history) 
         {
@@ -162,9 +160,9 @@ void transmitData()
         history.print(" Message:");
         history.print(txData.txMessage);
         history.print(" X:");
-        history.print(txData.txCoordX);
+        history.print(String(dtostrf(X,9,6,tx_X)));
         history.print(" Y:");
-        history.print(txData.txCoordY);
+        history.print(String(dtostrf(Y,9,6,tx_Y)));
         history.close();
         }
         Serial.println("done"); 
@@ -196,6 +194,8 @@ void recvStructWithKnownLength() {
                 byte dumpTheData = Serial1.read();
             }
         sent=false;
+        X=rxData.rxCoordX/1000000.0;
+        Y=rxData.rxCoordY/1000000.0;
         history=SD.open("messages.txt", FILE_WRITE);
         if (history) 
         {
@@ -207,9 +207,9 @@ void recvStructWithKnownLength() {
         history.print(" Message:");
         history.print(rxData.rxMessage);
         history.print(" X:");
-        history.print(rxData.rxCoordX);
+        history.print(String(dtostrf(Y,9,6,rx_X)));
         history.print(" Y:");
-        history.print(rxData.rxCoordY);
+        history.print(String(dtostrf(Y,9,6,rx_Y)));
         history.close();
         }
         tone(buzzer, 1000);
@@ -738,9 +738,9 @@ void MessageInbox()
   myGLCD.print("Message:", 5, 20);
   myGLCD.print(String(rxData.rxMessage), 125, 20);
   myGLCD.print("Xcoord:", 5, 40);
-  myGLCD.print(String(rxData.rxCoordX), 125, 40);
+  myGLCD.print(String(dtostrf(X,9,6,rx_X)), 125, 40);
   myGLCD.print("Ycoord:", 5, 60);
-  myGLCD.print(String(rxData.rxCoordY), 125, 60);
+  myGLCD.print(String(dtostrf(Y,9,6,rx_Y)), 125, 60);
   
   while(fda.getKey()!='&')
   {
