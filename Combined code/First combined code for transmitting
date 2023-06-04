@@ -9,6 +9,11 @@ int option;
 const byte ROWS = 5; 
 const byte COLS = 4;
 bool sent;
+float X, Y;
+char tx_X[11];
+char tx_Y[11];
+char rx_X[11];
+char rx_Y[11];
 int buzzer = 11;
 UTFT myGLCD(ILI9486,38,39,40,41);
 extern uint8_t BigFont[];
@@ -65,17 +70,17 @@ Keypad fua = Keypad( makeKeymap(first_up_alphabet), rowPins, colPins, ROWS, COLS
 Keypad sua = Keypad( makeKeymap(second_up_alphabet), rowPins, colPins, ROWS, COLS);
 Keypad nu = Keypad( makeKeymap(numbers_up), rowPins, colPins, ROWS, COLS);
 struct TxStruct {
-    char textA[16];         
-    int valA;               
-    unsigned long valB;                                                               
+    char txMessage[20];
+    long int txCoordX;
+    long int txCoordY;                                                                          
 };
 struct RxStruct {
-    char textB[20];        
-    int valC;               
-    unsigned long valD;                                                      
+    char rxMessage[20];
+    long int rxCoordX;
+    long int rxCoordY;                                                                            
 };
 RxStruct rxData;
-TxStruct txData = {"qwerty", 235, 0};
+TxStruct txData = {"qwerty", 42652876, 23354087};
 bool newTxData = false;
 const byte txDataLen = sizeof(txData);
 const byte rxDataLen = sizeof(rxData);
@@ -109,19 +114,15 @@ void updateDataToSend()
             EnterMessage(len);
             char sText[len+1];
             input_string.toCharArray(sText, len+1);
-            strcpy(txData.textA, sText);
-            txData.valA += 10;
-              if (txData.valA > 300) 
-              {
-              txData.valA = 235;
-              }
-            txData.valB = millis();
+            strcpy(txData.txMessage, sText);
             newTxData = true;
         } 
         
 }
 void transmitData() 
 {
+        X=txData.txCoordX/1000000.0;
+        Y=txData.txCoordY/1000000.0;
     if (newTxData == true) 
     {
         Serial1.write(startMarker);
@@ -132,26 +133,27 @@ void transmitData()
         myGLCD.print("Send message", 160 ,0);  
         myGLCD.print("Send", 5, 20);
         myGLCD.print("Info:", 80, 20);
-        myGLCD.print(String(txData.textA), 160, 20);
-        myGLCD.print("Value:", 5, 40);
-        myGLCD.print(String(txData.valA), 100, 40);
-        myGLCD.print("Time:", 160, 40);
-        myGLCD.print(String(txData.valB), 240, 40);
+        myGLCD.print(txData.txMessage, 160, 20);
+        myGLCD.print("Xcoordinates:", 5, 40);
+        myGLCD.print(String(dtostrf(X,9,6,tx_X)), 210, 40);
+        myGLCD.print("Ycoordinates:", 5, 60);
+        myGLCD.print(String(dtostrf(Y,9,6,tx_Y)), 210, 60);
         history=SD.open("messages.txt", FILE_WRITE);
         if (history) 
         {
           if(sent)
-          {
-          history.print("Sent ");
-          }
-        history.print("Time: ");
-        history.print(txData.valB);
-        history.print(" Value: ");
-        history.print(txData.valA);
-        history.print(" Message: ");
-        history.println(txData.textA);
-        history.println(" ");
+        {
+        history.print("&");
+        history.print("Sent ");
+        }
+        history.print(" Message:");
+        history.print(txData.txMessage);
+        history.print(" X:");
+        history.print(String(dtostrf(X,9,6,tx_X)));
+        history.print(" Y:");
+        history.print(String(dtostrf(Y,9,6,tx_Y)));
         history.close();
+        }
         Serial.println("done"); 
         while(fda.getKey()!='&')
           {
@@ -164,7 +166,7 @@ void transmitData()
               break;
             }
           } 
-    }
+    
     newTxData = false;
   }
 }
@@ -180,6 +182,25 @@ void recvStructWithKnownLength() {
             while (Serial1.available() > 0) {
                 byte dumpTheData = Serial1.read();
             }
+        sent=false;
+        X=rxData.rxCoordX/1000000.0;
+        Y=rxData.rxCoordY/1000000.0;
+        history=SD.open("messages.txt", FILE_WRITE);
+        if (history) 
+        {
+        if(sent==false)
+        {
+        history.print("&");
+        history.print("Recieved ");
+        }
+        history.print(" Message:");
+        history.print(rxData.rxMessage);
+        history.print(" X:");
+        history.print(String(dtostrf(Y,9,6,rx_X)));
+        history.print(" Y:");
+        history.print(String(dtostrf(Y,9,6,rx_Y)));
+        history.close();
+        }
         tone(buzzer, 1000);
         delay(100);        
         noTone(buzzer);
@@ -207,7 +228,6 @@ for(int i=0; i<lenght; i++)
 {
  if(keypads[0]==1 && keypads[1]==1)
  {
-  showKeypad(first_down_alphabet);
   while(fda.getKey()==0)
 {
   delay(20);
@@ -249,7 +269,6 @@ for(int i=0; i<lenght; i++)
  }
 else if(keypads[0]==2 && keypads[1]==1)
  {
-  showKeypad(second_down_alphabet);
   while(sda.getKey()==0)
 {
   delay(20);
@@ -298,7 +317,6 @@ else if(keypads[0]==2 && keypads[1]==1)
  }
 else if(keypads[0]==3 && keypads[1]==1)
  {
-  showKeypad(numbers_down);
   while(nd.getKey()==0)
 {
   delay(20);
@@ -342,7 +360,6 @@ else if(keypads[0]==3 && keypads[1]==1)
  }
  else if(keypads[0]==1 && keypads[1]==2)
  {
-  showKeypad(first_up_alphabet);
   while(fua.getKey()==0)
 {
   delay(20);
@@ -386,7 +403,6 @@ else if(keypads[0]==3 && keypads[1]==1)
  }
  else if(keypads[0]==2 && keypads[1]==2)
  {
-  showKeypad(second_up_alphabet);
   while(sua.getKey()==0)
 {
   delay(20);
@@ -435,7 +451,6 @@ else if(keypads[0]==3 && keypads[1]==1)
  }
  else if(keypads[0]==3 && keypads[1]==2)
  {
-  showKeypad(numbers_up);
   while(nu.getKey()==0)
 {
   delay(20);
@@ -485,7 +500,7 @@ void mainMenu()
   myGLCD.setColor(0,255,0);
   myGLCD.print("MAIN MENU", 150, 0);
   myGLCD.print("Choose option", 120, 20);
-  myGLCD.print("Sent message", 5, 40);
+  myGLCD.print("Send message", 5, 40);
   myGLCD.print("See your coordinates", 5, 60);
   myGLCD.print("Message history", 5, 80);
   myGLCD.print("Message inbox", 5, 100);
@@ -628,7 +643,7 @@ void mainMenu()
 void sentMessage()
 {
   updateDataToSend();
-  if(strlen(txData.textA)!=0)
+  if(strlen(txData.txMessage)!=0)
   {
   transmitData();
   }
@@ -643,7 +658,7 @@ void seeYourCoordinates()
   myGLCD.clrScr();
   myGLCD.setColor(0,255,0);
   myGLCD.print("COORDINATES", 150, 0);
-  myGLCD.print("Coordinates: 42.6664, 23.3750", 5, 30);
+  myGLCD.print("Coordinates: 42.6528, 23.3540", 5, 30);
   while(fda.getKey()!='&')
   {
   delay(20);
@@ -661,23 +676,32 @@ void messageHistory()
   myGLCD.clrScr();
   myGLCD.setColor(0,255,0);
   myGLCD.print("Message history", 130, 0); 
-  File readFile= SD.open("messages.txt");
+  File readFile=SD.open("messages.txt");
   if (readFile) 
   {
-    int rowPos=0, row=20;
+    int rowPos=0, row=0;
     while (readFile.available()) 
     {
       char readMemory=readFile.read();
-      if(5+rowPos*12>470)
+      if(row>300)
+      {
+      row=20;
+      myGLCD.setColor(0,0,0);
+      myGLCD.fillRect(5, 20, 480, 320);//start form x; y to x; y
+      myGLCD.setColor(0,255,0);
+      }
+      if(5+rowPos*12>470 || readMemory=='&')
       {
         rowPos=0;
         row+=20;
       }
-    myGLCD.print(String(readMemory), 5+rowPos*12, row);
-    rowPos++;
+      if(readMemory!='&')
+      {
+      myGLCD.print(String(readMemory), 5+rowPos*12, row);
+      rowPos++;
+      }
     }
-    readFile.close();
-    
+    readFile.close();  
   } 
   else 
   {
@@ -701,11 +725,12 @@ void MessageInbox()
   myGLCD.setColor(0,255,0);
   myGLCD.print("Message inbox", 140, 0);
   myGLCD.print("Message:", 5, 20);
-  myGLCD.print(String(rxData.textB), 125, 20);
-  myGLCD.print("Value:", 5, 40);
-  myGLCD.print(String(rxData.valC), 95, 40);
-  myGLCD.print("Time:", 5, 60);
-  myGLCD.print(String(rxData.valD), 85, 60); 
+  myGLCD.print(String(rxData.rxMessage), 125, 20);
+  myGLCD.print("Xcoord:", 5, 40);
+  myGLCD.print(String(dtostrf(X,9,6,rx_X)), 125, 40);
+  myGLCD.print("Ycoord:", 5, 60);
+  myGLCD.print(String(dtostrf(Y,9,6,rx_Y)), 125, 60);
+  
   while(fda.getKey()!='&')
   {
   delay(20);
@@ -715,35 +740,6 @@ void MessageInbox()
     {
       myGLCD.clrScr();
       break;
-    }
-  }
-}
-void showKeypad(char keyPad[ROWS][COLS])
-{
-  for(int m=0; m<COLS; m++)
-  {
-    for(int n=0; n<ROWS; n++)
-    {
-     if(keyPad[m][n]=="[")
-     {
-      myGLCD.print("Le", m*12+120, n*20+80);
-     }
-     if(keyPad[m][n]=="]")
-     {
-      myGLCD.print("Ri", m*12+120, n*20+80);
-     }
-     if(keyPad[m][n]=="@")
-     {
-      myGLCD.print("Up", m*12+120, n*20+80);
-     }
-     if(keyPad[m][n]==";")
-     {
-      myGLCD.print("down", m*12+120, n*20+80);
-     }
-     else
-     {
-     myGLCD.print(String(keyPad[n][m]), m*12+120, n*20+80); 
-     }
     }
   }
 }
