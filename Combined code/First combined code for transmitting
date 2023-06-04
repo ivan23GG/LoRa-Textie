@@ -655,10 +655,13 @@ void sentMessage()
 }
 void seeYourCoordinates()
 {
+  X=txData.txCoordX/1000000.0;
+  Y=txData.txCoordY/1000000.0;
   myGLCD.clrScr();
   myGLCD.setColor(0,255,0);
   myGLCD.print("COORDINATES", 150, 0);
-  myGLCD.print("Coordinates: 42.6528, 23.3540", 5, 30);
+  myGLCD.print("Coords:", 5, 30);
+  myGLCD.print(String(dtostrf(X,9,6,tx_X))+","+String(dtostrf(Y,9,6,tx_Y)), 125, 30);
   while(fda.getKey()!='&')
   {
   delay(20);
