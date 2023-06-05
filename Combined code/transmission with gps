@@ -82,7 +82,7 @@ struct RxStruct {
     long int rxCoordY;                                                                            
 };
 RxStruct rxData;
-TxStruct txData = {"qwerty", 42652876, 23354087};
+TxStruct txData = {"qwerty", 4, 2};
 bool newTxData = false;
 const byte txDataLen = sizeof(txData);
 const byte rxDataLen = sizeof(rxData);
@@ -92,7 +92,8 @@ void setup() {
     pinMode(buzzer, OUTPUT);
     Serial.begin(9600);
     Serial.println("\nStarting SerialStructSend.ino\n");
-    Serial1.begin(9600); // to match SoftwareSerial on Uno
+    Serial1.begin(9600); 
+    Serial2.begin(9600);// to match SoftwareSerial on Uno
      myGLCD.InitLCD();
      myGLCD.clrScr();
      myGLCD.setFont(BigFont);
