@@ -106,7 +106,17 @@ void setup() {
   Serial.println("initialization done.");
 }
 void loop() 
-{   
+{ 
+  while(txData.txCoordX==4)
+  {  
+  if (Serial2.available() > 0)
+  {
+    if (gps.encode(Serial2.read()))
+    {
+     getLocation();
+    }
+  }
+  }
     mainMenu();
 }
 void updateDataToSend() 
@@ -127,14 +137,8 @@ void transmitData()
        
     if (newTxData == true) 
     { 
-      if(gps.encode(Serial2.read()))
-        {
-          if(gps.location.isValid())
-            {
-              txData.txCoordX=gps.location.lat()*1000000;
-              txData.txCoordY=gps.location.lng()*1000000;
-            }
-        }
+      
+        getLocation();
         X=txData.txCoordX/1000000.0;
         Y=txData.txCoordY/1000000.0;
         Serial1.write(startMarker);
@@ -669,8 +673,11 @@ void seeYourCoordinates()
 {
   myGLCD.clrScr();
   myGLCD.setColor(0,255,0);
+  getLocation();
+  X=txData.txCoordX/1000000.0;
+  Y=txData.txCoordY/1000000.0;
   myGLCD.print("COORDINATES", 150, 0);
-  myGLCD.print("Coordinates: 42.6528, 23.3540", 5, 30);
+  myGLCD.print("Coords:"+String(dtostrf(X,9,6,tx_X))+","+String(dtostrf(Y,9,6,tx_Y)), 5, 30);
   while(fda.getKey()!='&')
   {
   delay(20);
@@ -753,5 +760,13 @@ void MessageInbox()
       myGLCD.clrScr();
       break;
     }
+  }
+}
+void getLocation()
+{
+  if (gps.location.isValid())
+  {
+  txData.txCoordX = gps.location.lat()*1000000;
+  txData.txCoordY = gps.location.lng()*1000000;
   }
 }
