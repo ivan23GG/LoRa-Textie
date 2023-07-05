@@ -92,8 +92,7 @@ void setup() {
   Serial.print("Initializing SD card...");
   if (!SD.begin(sdPin)) {
     Serial.println("initialization failed!");
-    while (1)
-      ;
+    while (1);
   }
   Serial.println("initialization done.");
 }
@@ -125,20 +124,7 @@ void transmitData() {
     myGLCD.print(String(txData.txCoordX), 210, 40);
     myGLCD.print("Ycoordinates:", 5, 60);
     myGLCD.print(String(txData.txCoordY), 210, 60);
-    history = SD.open("messages.txt", FILE_WRITE);
-    if (history) {
-      if (sent) {
-        history.print("&");
-        history.print("Sent ");
-      }
-      history.print(" Message:");
-      history.print(txData.txMessage);
-      history.print(" X:");
-      history.print(txData.txCoordX);
-      history.print(" Y:");
-      history.print(txData.txCoordY);
-      history.close();
-    }
+    writeMessageSD(sent);
     Serial.println("done");
     waitToExit();
     newTxData = false;
@@ -157,27 +143,15 @@ void recvStructWithKnownLength() {
     byte dumpTheData = Serial1.read();
   }
   sent = false;
-  history = SD.open("messages.txt", FILE_WRITE);
-  if (history) {
-    if (sent == false) {
-      history.print("&");
-      history.print("Recieved ");
-    }
-    history.print(" Message:");
-    history.print(rxData.rxMessage);
-    history.print(" X:");
-    history.print(rxData.rxCoordX);
-    history.print(" Y:");
-    history.print(rxData.rxCoordY);
-    history.close();
-  }
-  tone(buzzerPin, 1000);
-  delay(100);
-  noTone(buzzerPin);
-  delay(100);
-  tone(buzzerPin, 1000);
-  delay(100);
-  noTone(buzzerPin);
+  writeMessageSD(sent);
+}
+tone(buzzerPin, 1000);
+delay(100);
+noTone(buzzerPin);
+delay(100);
+tone(buzzerPin, 1000);
+delay(100);
+noTone(buzzerPin);
 }
 void checkForMessage() {
   if (Serial1.available() >= rxDataLen + 1) {
@@ -536,3 +510,31 @@ void waitForInput() {
     }
   }
 }
+void writeMessageSD(bool sent)
+{
+  history = SD.open("messages.txt", FILE_WRITE);
+  if (history) {
+    if (sent) {
+      history.print("&");
+      history.print("Sent ");
+      history.print(" Message:");
+      history.print(txData.txMessage);
+      history.print(" X:");
+      history.print(txData.txCoordX);
+      history.print(" Y:");
+      history.print(txData.txCoordY);
+    }
+    else {
+      history.print("&");
+      history.print("Recieved ");
+      history.print(" Message:");
+      history.print(rxData.rxMessage);
+      history.print(" X:");
+      history.print(rxData.rxCoordX);
+      history.print(" Y:");
+      history.print(rxData.rxCoordY);
+    }
+    history.close();
+  }
+}
+
